@@ -69,6 +69,7 @@ router.post('/', async (req, res) => {
       source: req.body.source,
       dateApplied: req.body.dateApplied || Date.now(),
       notes: req.body.notes,
+      portalLink: req.body.portalLink,
       status: req.body.status || 'Applied'
     });
     await app.save();
@@ -81,7 +82,7 @@ router.post('/', async (req, res) => {
 // PATCH update status / notes / role etc.
 router.patch('/:id', async (req, res) => {
   try {
-    const allowed = ['company', 'role', 'source', 'status', 'notes', 'dateApplied'];
+    const allowed = ['company', 'role', 'source', 'status', 'notes', 'dateApplied', 'portalLink'];
     const updates = {};
     allowed.forEach(f => { if (req.body[f] !== undefined) updates[f] = req.body[f]; });
     const app = await Application.findByIdAndUpdate(req.params.id, updates, { new: true });

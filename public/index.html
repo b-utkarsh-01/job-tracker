@@ -12,9 +12,14 @@
 <body>
 <div class="wrap">
   <header>
-    <div class="eyebrow">Pipeline</div>
-    <h1>Application Tracker</h1>
-    <div class="sub">Every company, every follow-up, in one place.</div>
+    <div class="header-row">
+      <div>
+        <div class="eyebrow">Pipeline</div>
+        <h1>Application Tracker</h1>
+        <div class="sub">Every company, every follow-up, in one place.</div>
+      </div>
+      <button id="darkToggle" class="dark-toggle" type="button" title="Toggle dark mode">🌙</button>
+    </div>
   </header>
 
   <div class="stats" id="stats"></div>
@@ -38,6 +43,9 @@
           <label>Source</label>
           <select id="f-source">
             <option>Wellfound</option>
+            <option>Naukri</option>
+            <option>Internshala</option>
+            <option>HiringCafe</option>
             <option>Company site</option>
             <option>Cold email</option>
             <option>LinkedIn</option>
@@ -48,6 +56,10 @@
         <div>
           <label>Date applied</label>
           <input id="f-date" type="date">
+        </div>
+        <div class="wide">
+          <label>Candidate portal link (where you check status)</label>
+          <input id="f-portal" placeholder="e.g. https://company.wd3.myworkdayjobs.com/...">
         </div>
         <div class="wide">
           <label>Contact / notes (email sent to, OA link, deadline)</label>
@@ -69,6 +81,7 @@
 
   <div class="panel">
     <h2>Applications</h2>
+    <input id="searchBox" class="search-box" placeholder="Search by company or role...">
     <div class="filters" id="filters"></div>
     <div id="tableWrap"></div>
   </div>

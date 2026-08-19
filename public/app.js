@@ -1,12 +1,46 @@
-const STATUSES = ['Applied','Under Consideration','OA/Task Pending','Interview Scheduled','Interviewed','Offer','Rejected','No Response','Ghosted'];const API = '/api/applications';
+const STATUSES = ['Applied','Under Consideration','OA/Task Pending','Interview Scheduled','Interviewed','Offer','Rejected','No Response','Ghosted'];
+const API = '/api/applications';
 let apps = [];
 let filter = 'All';
+let searchTerm = '';
 let charts = {};
 
-function showToast(msg){
+// ---- Dark mode ----
+function initDarkMode(){
+  const saved = localStorage.getItem('jt-theme');
+  if(saved === 'dark') document.body.classList.add('dark');
+  document.getElementById('darkToggle').textContent = document.body.classList.contains('dark') ? '☀️' : '🌙';
+}
+document.getElementById('darkToggle').onclick = ()=>{
+  document.body.classList.toggle('dark');
+  const isDark = document.body.classList.contains('dark');
+  localStorage.setItem('jt-theme', isDark ? 'dark' : 'light');
+  document.getElementById('darkToggle').textContent = isDark ? '☀️' : '🌙';
+  if(lastStats) renderCharts(lastStats);
+};
+initDarkMode();
+
+// ---- Search ----
+document.getElementById('searchBox').oninput = (e)=>{
+  searchTerm = e.target.value.trim().toLowerCase();
+  render();
+};
+
+// Turn any URL inside plain text into a clickable "Open link ↗" so long
+// links don't blow up the table layout.
+function linkify(text){
+  const escaped = esc(text);
+  return escaped.replace(/(https?:\/\/[^\s]+)/g, (url)=>{
+    const clean = url.replace(/[.,;)]+$/, '');
+    return `<a href="${clean}" target="_blank" rel="noopener">Open link ↗</a>`;
+  });
+}
+
+function showToast(msg, type = 'success'){
   const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 1800);
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  setTimeout(()=>{ t.classList.remove('show'); }, 1800);
 }
 
 async function loadApps(){
@@ -33,7 +67,20 @@ function renderStatCards(stats){
   `;
 }
 
+let lastStats = null;
+
+function chartColors(){
+  const styles = getComputedStyle(document.body);
+  return {
+    text: styles.getPropertyValue('--ink').trim(),
+    soft: styles.getPropertyValue('--ink-soft').trim(),
+    grid: styles.getPropertyValue('--line').trim()
+  };
+}
+
 function renderCharts(stats){
+  lastStats = stats;
+  const c = chartColors();
   const palette = ['#0F6B5C','#B8791A','#C13F2B','#4A5568','#7C9885','#D4A574','#8E6C88','#5B7C99'];
 
   const statusCtx = document.getElementById('statusChart');
@@ -46,7 +93,10 @@ function renderCharts(stats){
     },
     options: {
       maintainAspectRatio: false,
-      plugins: { legend: { position: 'bottom', labels: { font: { size: 9 }, boxWidth: 10 } }, title: { display: true, text: 'By status', font: { size: 11 } } }
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 9 }, boxWidth: 10, color: c.soft } },
+        title: { display: true, text: 'By status', font: { size: 11 }, color: c.text }
+      }
     }
   });
 
@@ -60,8 +110,11 @@ function renderCharts(stats){
     },
     options: {
       maintainAspectRatio: false,
-      plugins: { legend: { display: false }, title: { display: true, text: 'By source', font: { size: 11 } } },
-      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+      plugins: { legend: { display: false }, title: { display: true, text: 'By source', font: { size: 11 }, color: c.text } },
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 1, color: c.soft }, grid: { color: c.grid } },
+        x: { ticks: { color: c.soft }, grid: { color: c.grid } }
+      }
     }
   });
 
@@ -71,12 +124,15 @@ function renderCharts(stats){
     type: 'line',
     data: {
       labels: stats.weeks.map(w=>w.label),
-      datasets: [{ data: stats.weeks.map(w=>w.count), borderColor: '#0F6B5C', backgroundColor: '#E4F1EE', tension: 0.3, fill: true }]
+      datasets: [{ data: stats.weeks.map(w=>w.count), borderColor: '#0F6B5C', backgroundColor: '#0F6B5C33', tension: 0.3, fill: true }]
     },
     options: {
       maintainAspectRatio: false,
-      plugins: { legend: { display: false }, title: { display: true, text: 'Applications per week', font: { size: 11 } } },
-      scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+      plugins: { legend: { display: false }, title: { display: true, text: 'Applications per week', font: { size: 11 }, color: c.text } },
+      scales: {
+        y: { beginAtZero: true, ticks: { stepSize: 1, color: c.soft }, grid: { color: c.grid } },
+        x: { ticks: { color: c.soft }, grid: { color: c.grid } }
+      }
     }
   });
 }
@@ -99,6 +155,12 @@ function isOverdue(app){
 function renderTable(){
   let list = apps.slice();
   if(filter !== 'All') list = list.filter(a=>a.status===filter);
+  if(searchTerm){
+    list = list.filter(a =>
+      (a.company||'').toLowerCase().includes(searchTerm) ||
+      (a.role||'').toLowerCase().includes(searchTerm)
+    );
+  }
   list.sort((a,b)=>{
     const aOver = isOverdue(a), bOver = isOverdue(b);
     if(aOver && !bOver) return -1;
@@ -124,7 +186,11 @@ function renderTable(){
         const skip = ['Rejected','Offer'].includes(a.status);
         return `
         <tr data-id="${a._id}">
-          <td><div class="company">${esc(a.company)}</div><div class="role">${esc(a.role||'')}</div></td>
+          <td>
+            <div class="company">${esc(a.company)}</div>
+            <div class="role">${esc(a.role||'')}</div>
+            ${a.portalLink ? `<a class="portal-link" href="${esc(a.portalLink)}" target="_blank" rel="noopener">Track status ↗</a>` : ''}
+          </td>
           <td>${esc(a.source)}</td>
           <td>${applied}</td>
           <td>
@@ -143,8 +209,11 @@ function renderTable(){
               </div>
             ` : `<span class="followup ok">next check ${new Date(a.nextFollowupDate).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>`}
           </td>
-          <td class="notes">${esc(a.notes||'')}</td>
-          <td class="row-actions"><button data-del="${a._id}" title="Delete">✕</button></td>
+          <td class="notes" data-notes-id="${a._id}">${a.notes ? linkify(a.notes) : '<span style="opacity:0.5">— click to add —</span>'}</td>
+          <td class="row-actions">
+            <button data-edit="${a._id}" title="Edit notes">✎</button>
+            <button data-del="${a._id}" title="Delete">✕</button>
+          </td>
         </tr>`;
       }).join('')}
     </tbody>
@@ -156,8 +225,28 @@ function renderTable(){
         method: 'PATCH', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ status: sel.value })
       });
-      showToast('Status updated');
+      showToast('Status updated', 'success');
       await loadApps(); await loadStats();
+    };
+  });
+
+  wrap.querySelectorAll('[data-edit]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const id = btn.dataset.edit;
+      const app = apps.find(a=>a._id===id);
+      const cell = wrap.querySelector(`[data-notes-id="${id}"]`);
+      cell.innerHTML = `<textarea id="edit-${id}">${app.notes||''}</textarea>`;
+      const ta = document.getElementById(`edit-${id}`);
+      ta.focus();
+      const saveEdit = async ()=>{
+        await fetch(`${API}/${id}`, {
+          method: 'PATCH', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ notes: ta.value.trim() })
+        });
+        await loadApps();
+      };
+      ta.onblur = saveEdit;
+      ta.onkeydown = (e)=>{ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); ta.blur(); } };
     };
   });
 
@@ -176,7 +265,7 @@ function renderTable(){
         method: 'PATCH', headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ answered })
       });
-      showToast(answered ? 'Nice — next check in 3 days' : 'Noted — next check in 3 days');
+      showToast(answered ? 'Nice — next check in 3 days' : 'Noted — next check in 3 days', 'success');
       await loadApps(); await loadStats();
     };
   });
@@ -192,18 +281,19 @@ function render(){
 
 document.getElementById('addBtn').onclick = async ()=>{
   const company = document.getElementById('f-company').value.trim();
-  if(!company){ showToast('Company name needed'); return; }
+  if(!company){ showToast('Company name needed', 'error'); return; }
   const body = {
     company,
     role: document.getElementById('f-role').value.trim(),
     source: document.getElementById('f-source').value,
     dateApplied: document.getElementById('f-date').value || undefined,
-    notes: document.getElementById('f-notes').value.trim()
+    notes: document.getElementById('f-notes').value.trim(),
+    portalLink: document.getElementById('f-portal').value.trim()
   };
   await fetch(API, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
-  ['f-company','f-role','f-date','f-notes'].forEach(id=>document.getElementById(id).value='');
+  ['f-company','f-role','f-date','f-notes','f-portal'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-source').value = 'Wellfound';
-  showToast('Added');
+  showToast('Added', 'success');
   await loadApps(); await loadStats();
 };
 

@@ -14,6 +14,9 @@ const STATUS_VALUES = [
 
 const SOURCE_VALUES = [
   'Wellfound',
+  'Naukri',
+  'Internshala',
+  'HiringCafe',
   'Company site',
   'Cold email',
   'LinkedIn',
@@ -34,11 +37,10 @@ const ApplicationSchema = new mongoose.Schema({
   dateApplied: { type: Date, default: Date.now },
   status: { type: String, enum: STATUS_VALUES, default: 'Applied' },
   notes: { type: String, trim: true },
+  portalLink: { type: String, trim: true }, // candidate/application status portal URL
 
-  // Follow-up cycle: instead of a one-off date, this rolls forward 3 days
-  // every time the user answers the "did you follow up?" prompt.
   nextFollowupDate: { type: Date, default: threeDaysFromNow },
-  followedUpLast: { type: Boolean, default: null }, // null = not answered yet
+  followedUpLast: { type: Boolean, default: null },
   followupCount: { type: Number, default: 0 }
 }, { timestamps: true });
 
