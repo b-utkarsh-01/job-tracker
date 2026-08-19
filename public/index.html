@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Application Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Pipeline</div>
+    <h1>Application Tracker</h1>
+    <div class="sub">Every company, every follow-up, in one place.</div>
+  </header>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="panel">
+    <h2>
+      Add application
+      <button id="toggleForm" type="button">Hide</button>
+    </h2>
+    <div id="formBody">
+      <div class="form-grid">
+        <div class="wide">
+          <label>Company</label>
+          <input id="f-company" placeholder="e.g. Notion">
+        </div>
+        <div class="wide">
+          <label>Role</label>
+          <input id="f-role" placeholder="e.g. SWE Intern">
+        </div>
+        <div>
+          <label>Source</label>
+          <select id="f-source">
+            <option>Wellfound</option>
+            <option>Company site</option>
+            <option>Cold email</option>
+            <option>LinkedIn</option>
+            <option>Referral</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div>
+          <label>Date applied</label>
+          <input id="f-date" type="date">
+        </div>
+        <div class="wide">
+          <label>Contact / notes (email sent to, OA link, deadline)</label>
+          <textarea id="f-notes" placeholder="e.g. sent cold mail to founder@x.com, OA due Fri"></textarea>
+        </div>
+      </div>
+      <button class="add-btn" id="addBtn" type="button">+ Add to tracker</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Stats</h2>
+    <div class="charts">
+      <div class="chart-box"><canvas id="statusChart"></canvas></div>
+      <div class="chart-box"><canvas id="sourceChart"></canvas></div>
+      <div class="chart-box wide-chart"><canvas id="weeklyChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Applications</h2>
+    <div class="filters" id="filters"></div>
+    <div id="tableWrap"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>
