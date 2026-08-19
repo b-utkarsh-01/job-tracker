@@ -1,5 +1,4 @@
 # Job Application Tracker
-## OnLine:- https://job-tracker-2d6q.onrender.com/
 
 MongoDB-backed tracker: companies, sources, status, and a follow-up cycle that
 resets every 3 days (instead of a fixed date) via a Yes/No prompt. Includes
