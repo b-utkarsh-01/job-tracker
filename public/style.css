@@ -37,6 +37,76 @@ body{
   transition: background 0.2s, color 0.2s;
 }
 .header-row{ display:flex; align-items:flex-start; justify-content: space-between; gap: 12px; }
+.header-actions{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.icon-toggle{ position:relative; background: var(--surface); border:1px solid var(--line); border-radius:999px; width:38px; height:38px; font-size:16px; cursor:pointer; }
+.icon-toggle:hover{ background:var(--slate-soft); }
+.notification-bell{ line-height:1; }
+.notification-badge{ position:absolute; top:-4px; right:-4px; min-width:17px; height:17px; padding:0 4px; border-radius:999px; background:var(--coral); color:#fff; font:700 9px/17px 'IBM Plex Mono', monospace; text-align:center; border:2px solid var(--surface); }
+.hidden{ display:none !important; }
+.bell-wrap{ position:relative; }
+.notification-panel{ position:absolute; z-index:50; top:46px; right:0; width:min(360px, calc(100vw - 28px)); background:var(--surface); border:1px solid var(--line); border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.12); padding:12px; }
+.notification-panel .panel-title{ font-family:'Space Grotesk',sans-serif; font-size:13px; font-weight:700; margin-bottom:8px; }
+.notification-panel .notification-item{ padding:8px 0; border-bottom:1px solid var(--line); }
+.notification-panel .notification-item:last-child{ border-bottom:none; }
+.notification-panel .notification-company{ font-family:'Space Grotesk',sans-serif; font-size:12.5px; font-weight:600; }
+.notification-panel .notification-role{ color:var(--ink-soft); font-size:10.5px; margin-top:2px; }
+.notification-panel .notification-actions{ margin-top:10px; display:flex; gap:6px; }
+/* .notification-panel button{ border:1px solid var(--line); background:var(--surface); color:var(--ink); border-radius:7px; padding:6px 8px; cursor:pointer; font:10.5px 'IBM Plex Mono',monospace; } */
+.notification-panel button{
+  border:1px solid var(--line);
+  background:var(--surface);
+  color:var(--ink);
+  border-radius:7px;
+  padding:6px 8px;
+  cursor:pointer;
+  font:10.5px 'IBM Plex Mono',monospace;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease;
+}
+/* .notification-panel button:hover{ background:var(--slate-soft); } */
+.notification-panel button:hover{
+  background:var(--slate-soft);
+  color:var(--ink);
+}
+
+/* =========================================
+   Enable reminders — LIGHT THEME
+   ========================================= */
+
+/* .notification-panel .enable-btn{ background:var(--teal); color:#fff; border-color:var(--teal); } */
+.notification-panel .enable-btn{
+  background:var(--teal);
+  color:#fff;
+  border-color:var(--teal);
+}
+
+.notification-panel .enable-btn:hover{
+  background:var(--surface);
+  color:var(--teal);
+  border-color:var(--teal);
+}
+
+/* =========================================
+   Enable reminders — DARK THEME
+   Reversed interaction
+   ========================================= */
+
+body.dark .notification-panel .enable-btn{
+  background:var(--surface);
+  color:var(--teal);
+  border-color:var(--teal);
+}
+
+body.dark .notification-panel .enable-btn:hover{
+  background:var(--teal);
+  color:#fff;
+  border-color:var(--teal);
+}
+
+
+.notification-panel .panel-muted{ color:var(--ink-soft); font-size:10.5px; line-height:1.5; }
 .dark-toggle{
   background: var(--surface); border: 1px solid var(--line); border-radius: 999px;
   width: 38px; height: 38px; font-size: 16px; cursor: pointer; flex-shrink: 0;
@@ -154,6 +224,14 @@ tr:last-child td{ border-bottom: none; }
 .toast.success{ background: var(--teal); color: #fff; }
 .toast.error{ background: var(--coral); color: #fff; }
 
+.shortcut-help{ position:fixed; inset:0; z-index:100; background:rgba(0,0,0,.32); display:flex; align-items:center; justify-content:center; padding:20px; }
+.shortcut-card{ width:min(390px,100%); background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow:0 18px 50px rgba(0,0,0,.2); }
+.shortcut-head{ display:flex; align-items:center; justify-content:space-between; font-family:'Space Grotesk',sans-serif; margin-bottom:12px; }
+.shortcut-head button{ border:0; background:none; color:var(--ink-soft); cursor:pointer; font-size:14px; }
+.shortcut-list{ display:grid; gap:7px; }
+.shortcut-list div{ display:flex; align-items:center; gap:10px; font-size:11.5px; }
+kbd{ min-width:30px; padding:4px 7px; text-align:center; border:1px solid var(--line); border-bottom-width:2px; border-radius:6px; background:var(--slate-soft); color:var(--ink); font:600 11px 'IBM Plex Mono',monospace; }
+
 /* ---- Pagination ---- */
 .result-count{ font-size: 11px; color: var(--ink-soft); margin-bottom: 10px; }
 .pagination{
@@ -180,6 +258,7 @@ tr:last-child td{ border-bottom: none; }
 
 /* ---- Mobile-first responsive layout ---- */
 @media (max-width: 680px){
+  .notification-panel{ position:fixed; top:66px; right:12px; }
   body{ padding: 16px 12px 100px; }
   h1{ font-size: 24px; }
   .stats{ grid-template-columns: repeat(2, 1fr); }

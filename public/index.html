@@ -18,7 +18,15 @@
         <h1>Application Tracker</h1>
         <div class="sub">Every company, every follow-up, in one place.</div>
       </div>
-      <button id="darkToggle" class="dark-toggle" type="button" title="Toggle dark mode">🌙</button>
+      <div class="header-actions">
+        <div class="bell-wrap">
+          <button id="notificationBell" class="icon-toggle notification-bell" type="button" title="Follow-up reminders" aria-label="Follow-up reminders">
+            🔔<span id="notificationBadge" class="notification-badge hidden">0</span>
+          </button>
+          <div id="notificationPanel" class="notification-panel hidden" aria-live="polite"></div>
+        </div>
+        <button id="darkToggle" class="dark-toggle" type="button" title="Toggle dark mode">🌙</button>
+      </div>
     </div>
   </header>
 
@@ -88,6 +96,22 @@
 </div>
 
 <div class="toast" id="toast"></div>
+<div id="shortcutHelp" class="shortcut-help hidden">
+  <div class="shortcut-card">
+    <div class="shortcut-head">
+      <strong>Keyboard shortcuts</strong>
+      <button id="closeShortcutHelp" type="button" title="Close">✕</button>
+    </div>
+    <div class="shortcut-list">
+      <div><kbd>N</kbd><span>New application</span></div>
+      <div><kbd>/</kbd><span>Focus search</span></div>
+      <div><kbd>D</kbd><span>Toggle dark mode</span></div>
+      <div><kbd>R</kbd><span>Refresh applications</span></div>
+      <div><kbd>?</kbd><span>Show shortcuts</span></div>
+      <div><kbd>Esc</kbd><span>Close panels</span></div>
+    </div>
+  </div>
+</div>
 <button class="fab" id="fab" type="button" title="Add application">+</button>
 <script src="app.js"></script>
 </body>
