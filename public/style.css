@@ -77,16 +77,16 @@ input:focus, select:focus, textarea:focus{ outline: 2px solid var(--teal); outli
 textarea{ resize: vertical; min-height: 40px; }
 
 .add-btn{
-  margin-top: 12px; 
-  width: 100%; 
-  padding: 10px; 
-  border: none; 
+  margin-top: 12px;
+  width: 100%;
+  padding: 10px;
+  border: none;
   border-radius: 8px;
-  background: var(--slate-soft); 
-  color: var(--ink); 
-  font-family: 'Space Grotesk', sans-serif; 
-  font-weight: 600; 
-  font-size: 13px; 
+  background: var(--slate-soft);
+  color: var(--ink);
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
   cursor: pointer;
 }
 .add-btn:hover{ opacity: 0.88; }
@@ -96,10 +96,10 @@ textarea{ resize: vertical; min-height: 40px; }
   font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; padding: 6px 12px;
   border: 1px solid var(--line); border-radius: 999px; background: var(--surface); cursor: pointer; color: var(--ink-soft);
 }
-.filters button.active{ 
-  background: var(--slate-soft); 
-  color: var(--ink); 
-  border-color: var(--slate); 
+.filters button.active{
+  background: var(--slate-soft);
+  color: var(--ink);
+  border-color: var(--slate);
 }
 
 table{ width: 100%; border-collapse: collapse; }
@@ -137,7 +137,11 @@ tr:last-child td{ border-bottom: none; }
 .status-select{ padding: 4px 6px; font-size: 11px; border-radius: 6px; }
 
 .charts{ display:grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.chart-box{ background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px; height: 220px; }
+.chart-box{
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  padding: 12px; height: 220px; position: relative; overflow: hidden;
+}
+.chart-box canvas{ max-width: 100%; }
 .wide-chart{ grid-column: span 2; }
 
 .toast{
@@ -149,3 +153,56 @@ tr:last-child td{ border-bottom: none; }
 .toast.show{ opacity: 1; transform: translateX(-50%) translateY(-6px); }
 .toast.success{ background: var(--teal); color: #fff; }
 .toast.error{ background: var(--coral); color: #fff; }
+
+/* ---- Pagination ---- */
+.result-count{ font-size: 11px; color: var(--ink-soft); margin-bottom: 10px; }
+.pagination{
+  display:flex; align-items:center; justify-content:center; gap: 6px;
+  margin-top: 16px; flex-wrap: wrap;
+}
+.pagination button{
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; min-width: 30px; height: 30px;
+  border: 1px solid var(--line); border-radius: 7px; background: var(--surface); cursor: pointer; color: var(--ink-soft);
+}
+.pagination button.active{ background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.pagination button:disabled{ opacity: 0.35; cursor: not-allowed; }
+.pagination button:hover:not(:disabled):not(.active){ background: var(--slate-soft); }
+
+/* ---- Mobile floating add button ---- */
+.fab{
+  display: none;
+  position: fixed; bottom: 22px; right: 18px; z-index: 20;
+  width: 52px; height: 52px; border-radius: 50%; border: none;
+  background: var(--ink); color: var(--bg); font-size: 24px; cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+  align-items: center; justify-content: center;
+}
+
+/* ---- Mobile-first responsive layout ---- */
+@media (max-width: 680px){
+  body{ padding: 16px 12px 100px; }
+  h1{ font-size: 24px; }
+  .stats{ grid-template-columns: repeat(2, 1fr); }
+  .filters{ flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+  .filters button{ flex-shrink: 0; }
+  .charts{ grid-template-columns: 1fr; }
+  .wide-chart{ grid-column: span 1; }
+  .chart-box{ height: 190px; padding: 10px; }
+
+  /* Table -> stacked cards */
+  table, thead, tbody, th, td, tr{ display: block; width: 100%; }
+  thead{ display: none; }
+  tbody tr{
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 10px 12px; margin-bottom: 10px;
+  }
+  tbody td{ border-bottom: none; padding: 6px 0; }
+  tbody td[data-label]::before{
+    content: attr(data-label);
+    display: block; font-size: 9px; text-transform: uppercase; letter-spacing: 0.07em;
+    color: var(--ink-soft); margin-bottom: 2px;
+  }
+  .row-actions{ justify-content: flex-end; padding-top: 4px; }
+
+  .fab{ display: flex; }
+}

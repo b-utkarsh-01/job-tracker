@@ -3,6 +3,8 @@ const API = '/api/applications';
 let apps = [];
 let filter = 'All';
 let searchTerm = '';
+let currentPage = 1;
+const PAGE_SIZE = 8;
 let charts = {};
 
 // ---- Dark mode ----
@@ -23,6 +25,7 @@ initDarkMode();
 // ---- Search ----
 document.getElementById('searchBox').oninput = (e)=>{
   searchTerm = e.target.value.trim().toLowerCase();
+  currentPage = 1;
   render();
 };
 
@@ -81,6 +84,7 @@ function chartColors(){
 function renderCharts(stats){
   lastStats = stats;
   const c = chartColors();
+  const isNarrow = window.innerWidth < 680;
   const palette = ['#0F6B5C','#B8791A','#C13F2B','#4A5568','#7C9885','#D4A574','#8E6C88','#5B7C99'];
 
   const statusCtx = document.getElementById('statusChart');
@@ -92,9 +96,10 @@ function renderCharts(stats){
       datasets: [{ data: Object.values(stats.byStatus), backgroundColor: palette }]
     },
     options: {
+      responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { position: 'bottom', labels: { font: { size: 9 }, boxWidth: 10, color: c.soft } },
+        legend: { position: 'bottom', labels: { font: { size: isNarrow ? 8 : 9 }, boxWidth: 8, padding: 6, color: c.soft } },
         title: { display: true, text: 'By status', font: { size: 11 }, color: c.text }
       }
     }
@@ -109,11 +114,12 @@ function renderCharts(stats){
       datasets: [{ data: Object.values(stats.bySource), backgroundColor: '#0F6B5C' }]
     },
     options: {
+      responsive: true,
       maintainAspectRatio: false,
       plugins: { legend: { display: false }, title: { display: true, text: 'By source', font: { size: 11 }, color: c.text } },
       scales: {
-        y: { beginAtZero: true, ticks: { stepSize: 1, color: c.soft }, grid: { color: c.grid } },
-        x: { ticks: { color: c.soft }, grid: { color: c.grid } }
+        y: { beginAtZero: true, ticks: { stepSize: 1, color: c.soft, font: { size: isNarrow ? 8 : 10 } }, grid: { color: c.grid } },
+        x: { ticks: { color: c.soft, font: { size: isNarrow ? 7 : 10 }, maxRotation: 60, minRotation: isNarrow ? 60 : 0, autoSkip: false }, grid: { color: c.grid } }
       }
     }
   });
@@ -127,14 +133,27 @@ function renderCharts(stats){
       datasets: [{ data: stats.weeks.map(w=>w.count), borderColor: '#0F6B5C', backgroundColor: '#0F6B5C33', tension: 0.3, fill: true }]
     },
     options: {
+      responsive: true,
       maintainAspectRatio: false,
       plugins: { legend: { display: false }, title: { display: true, text: 'Applications per week', font: { size: 11 }, color: c.text } },
       scales: {
-        y: { beginAtZero: true, ticks: { stepSize: 1, color: c.soft }, grid: { color: c.grid } },
-        x: { ticks: { color: c.soft }, grid: { color: c.grid } }
+        y: { beginAtZero: true, ticks: { stepSize: 1, color: c.soft, font: { size: isNarrow ? 8 : 10 } }, grid: { color: c.grid } },
+        x: { ticks: { color: c.soft, font: { size: isNarrow ? 7 : 10 }, maxRotation: 45 }, grid: { color: c.grid } }
       }
     }
   });
+}
+
+// Re-draw charts if the viewport changes (rotation, resize) or fonts finish
+// loading late (Google Fonts can shift container width after first paint,
+// which otherwise leaves Chart.js canvases locked to a stale, overflowing size).
+let resizeTimer;
+window.addEventListener('resize', ()=>{
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(()=>{ if(lastStats) renderCharts(lastStats); }, 200);
+});
+if(document.fonts && document.fonts.ready){
+  document.fonts.ready.then(()=>{ if(lastStats) renderCharts(lastStats); });
 }
 
 function renderFilters(){
@@ -143,7 +162,7 @@ function renderFilters(){
     `<button data-f="${c}" class="${filter===c?'active':''}">${c}</button>`
   ).join('');
   document.querySelectorAll('#filters button').forEach(b=>{
-    b.onclick = ()=>{ filter = b.dataset.f; render(); };
+    b.onclick = ()=>{ filter = b.dataset.f; currentPage = 1; render(); };
   });
 }
 
@@ -169,36 +188,44 @@ function renderTable(){
   });
 
   const wrap = document.getElementById('tableWrap');
-  if(list.length === 0){
+  const total = list.length;
+
+  if(total === 0){
     wrap.innerHTML = `<div class="empty">No applications here yet. Add your first one above.</div>`;
     return;
   }
 
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if(currentPage > totalPages) currentPage = totalPages;
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = list.slice(start, start + PAGE_SIZE);
+
   wrap.innerHTML = `
+  <div class="result-count">${total} application${total===1?'':'s'} · page ${currentPage} of ${totalPages}</div>
   <table>
     <thead><tr>
       <th>Company / Role</th><th>Source</th><th>Applied</th><th>Status</th><th>Follow-up (every 3d)</th><th>Notes</th><th></th>
     </tr></thead>
     <tbody>
-      ${list.map(a=>{
+      ${pageItems.map(a=>{
         const applied = a.dateApplied ? new Date(a.dateApplied).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '—';
         const overdue = isOverdue(a);
         const skip = ['Rejected','Offer'].includes(a.status);
         return `
         <tr data-id="${a._id}">
-          <td>
+          <td data-label="Company">
             <div class="company">${esc(a.company)}</div>
             <div class="role">${esc(a.role||'')}</div>
             ${a.portalLink ? `<a class="portal-link" href="${esc(a.portalLink)}" target="_blank" rel="noopener">Track status ↗</a>` : ''}
           </td>
-          <td>${esc(a.source)}</td>
-          <td>${applied}</td>
-          <td>
+          <td data-label="Source">${esc(a.source)}</td>
+          <td data-label="Applied">${applied}</td>
+          <td data-label="Status">
             <select class="status-select" data-id="${a._id}">
               ${STATUSES.map(s=>`<option ${s===a.status?'selected':''}>${s}</option>`).join('')}
             </select>
           </td>
-          <td>
+          <td data-label="Follow-up">
             ${skip ? `<span class="followup ok">—</span>` : overdue ? `
               <div class="followup-prompt">
                 <span class="followup overdue">Followed up?</span>
@@ -209,7 +236,7 @@ function renderTable(){
               </div>
             ` : `<span class="followup ok">next check ${new Date(a.nextFollowupDate).toLocaleDateString('en-US',{month:'short',day:'numeric'})}</span>`}
           </td>
-          <td class="notes" data-notes-id="${a._id}">${a.notes ? linkify(a.notes) : '<span style="opacity:0.5">— click to add —</span>'}</td>
+          <td class="notes" data-label="Notes" data-notes-id="${a._id}">${a.notes ? linkify(a.notes) : '<span style="opacity:0.5">— click to add —</span>'}</td>
           <td class="row-actions">
             <button data-edit="${a._id}" title="Edit notes">✎</button>
             <button data-del="${a._id}" title="Delete">✕</button>
@@ -217,7 +244,9 @@ function renderTable(){
         </tr>`;
       }).join('')}
     </tbody>
-  </table>`;
+  </table>
+  ${totalPages > 1 ? renderPagination(totalPages) : ''}
+  `;
 
   wrap.querySelectorAll('.status-select').forEach(sel=>{
     sel.onchange = async ()=>{
@@ -269,6 +298,35 @@ function renderTable(){
       await loadApps(); await loadStats();
     };
   });
+
+  wrap.querySelectorAll('.pagination button[data-page]').forEach(btn=>{
+    btn.onclick = ()=>{
+      currentPage = parseInt(btn.dataset.page, 10);
+      renderTable();
+      wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+  });
+}
+
+function renderPagination(totalPages){
+  let pages = [];
+  for(let p = 1; p <= totalPages; p++){
+    // show first, last, current, and neighbors; collapse the rest with "..."
+    if(p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1){
+      pages.push(p);
+    } else if(pages[pages.length-1] !== '...'){
+      pages.push('...');
+    }
+  }
+  return `
+  <div class="pagination">
+    <button data-page="${currentPage - 1}" ${currentPage===1?'disabled':''}>‹</button>
+    ${pages.map(p => p === '...'
+      ? `<span style="padding:0 4px;color:var(--ink-soft)">…</span>`
+      : `<button data-page="${p}" class="${p===currentPage?'active':''}">${p}</button>`
+    ).join('')}
+    <button data-page="${currentPage + 1}" ${currentPage===totalPages?'disabled':''}>›</button>
+  </div>`;
 }
 
 function esc(s){
@@ -304,6 +362,23 @@ document.getElementById('toggleForm').onclick = ()=>{
   body.style.display = hidden ? '' : 'none';
   btn.textContent = hidden ? 'Hide' : 'Show';
 };
+
+// Mobile floating "+" button: jump to the add form and focus the company field
+const fab = document.getElementById('fab');
+if(fab){
+  fab.onclick = ()=>{
+    const body = document.getElementById('formBody');
+    body.style.display = '';
+    document.getElementById('toggleForm').textContent = 'Hide';
+    document.getElementById('f-company').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(()=>document.getElementById('f-company').focus(), 300);
+  };
+}
+
+// Quick-add: pressing Enter in the company field submits the form
+document.getElementById('f-company').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter'){ e.preventDefault(); document.getElementById('addBtn').click(); }
+});
 
 loadApps();
 loadStats();
