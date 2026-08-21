@@ -48,12 +48,26 @@ router.get('/stats', async (req, res) => {
       !['Rejected', 'Offer'].includes(a.status) && new Date(a.nextFollowupDate) <= now
     ).length;
 
+    // Conversion funnel: how far applications typically progress.
+    // "Responded" = anything past the raw Applied stage (something happened).
+    // "Interview" = reached or passed an interview stage.
+    // "Offer" = final positive outcome.
+    const respondedStatuses = ['Under Consideration', 'OA/Task Pending', 'Interview Scheduled', 'Interviewed', 'Offer'];
+    const interviewStatuses = ['Interview Scheduled', 'Interviewed', 'Offer'];
+    const funnel = {
+      applied: apps.length,
+      responded: apps.filter(a => respondedStatuses.includes(a.status)).length,
+      interview: apps.filter(a => interviewStatuses.includes(a.status)).length,
+      offer: apps.filter(a => a.status === 'Offer').length
+    };
+
     res.json({
       total: apps.length,
       byStatus,
       bySource,
       weeks,
-      overdueFollowups
+      overdueFollowups,
+      funnel
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

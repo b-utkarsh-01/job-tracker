@@ -84,11 +84,19 @@
       <div class="chart-box"><canvas id="statusChart"></canvas></div>
       <div class="chart-box"><canvas id="sourceChart"></canvas></div>
       <div class="chart-box wide-chart"><canvas id="weeklyChart"></canvas></div>
+      <div class="chart-box wide-chart"><canvas id="funnelChart"></canvas></div>
     </div>
   </div>
 
-  <div class="panel">
-    <h2>Applications</h2>
+  <div class="panel" id="applicationsPanel">
+    <h2>
+      Applications
+      <div class="csv-actions">
+        <button id="exportCsvBtn" type="button" title="Download all applications as CSV">Export CSV</button>
+        <button id="importCsvBtn" type="button" title="Add applications from a CSV file">Import CSV</button>
+        <input id="importCsvFile" type="file" accept=".csv" class="hidden">
+      </div>
+    </h2>
     <input id="searchBox" class="search-box" placeholder="Search by company or role...">
     <div class="filters" id="filters"></div>
     <div id="tableWrap"></div>
@@ -115,4 +123,4 @@
 <button class="fab" id="fab" type="button" title="Add application">+</button>
 <script src="app.js"></script>
 </body>
-</html>
+</html> 

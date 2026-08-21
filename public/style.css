@@ -125,11 +125,17 @@ h1{ font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700;
 .stat.overdue .n{ color: var(--coral); }
 .stat.pending .n{ color: var(--amber); }
 .stat.active .n{ color: var(--teal); }
+.stat-clickable{ cursor: pointer; transition: border-color 0.15s, transform 0.1s; }
+.stat-clickable:hover{ border-color: var(--slate); }
+.stat-clickable:active{ transform: scale(0.98); }
 
 .panel{ background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin-bottom: 18px; }
 .panel h2{ font-family: 'Space Grotesk', sans-serif; font-size: 15px; margin: 0 0 14px; display:flex; align-items:center; justify-content: space-between; }
 .panel h2 button{ font-family: 'IBM Plex Mono', monospace; font-size: 11px; background: none; border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; color: var(--ink-soft); }
 .panel h2 button:hover{ background: var(--slate-soft); }
+.csv-actions{ display: flex; gap: 6px; }
+.csv-actions button{ font-family: 'IBM Plex Mono', monospace; font-size: 11px; background: none; border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; color: var(--ink-soft); }
+.csv-actions button:hover{ background: var(--slate-soft); }
 
 .form-grid{ display: grid; grid-template-columns: 1.3fr 1.3fr 1fr 1fr; gap: 10px; }
 .form-grid .wide{ grid-column: span 4; }
@@ -267,6 +273,9 @@ kbd{ min-width:30px; padding:4px 7px; text-align:center; border:1px solid var(--
   .charts{ grid-template-columns: 1fr; }
   .wide-chart{ grid-column: span 1; }
   .chart-box{ height: 190px; padding: 10px; }
+  .panel h2{ flex-wrap: wrap; gap: 8px; }
+  .csv-actions{ width: 100%; }
+  .csv-actions button{ flex: 1; }
 
   /* Table -> stacked cards */
   table, thead, tbody, th, td, tr{ display: block; width: 100%; }

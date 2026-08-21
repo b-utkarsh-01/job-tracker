@@ -760,7 +760,7 @@ function renderStatCards(stats){
     'stats'
   ).innerHTML = `
 
-    <div class="stat">
+    <div class="stat stat-clickable" data-stat-filter="All">
       <div class="n">
         ${stats.total}
       </div>
@@ -782,7 +782,7 @@ function renderStatCards(stats){
     </div>
 
 
-    <div class="stat pending">
+    <div class="stat pending stat-clickable" data-stat-filter="OA/Task Pending">
       <div class="n">
         ${stats.byStatus['OA/Task Pending'] || 0}
       </div>
@@ -793,7 +793,7 @@ function renderStatCards(stats){
     </div>
 
 
-    <div class="stat overdue">
+    <div class="stat overdue stat-clickable" data-stat-filter="Follow-up Due">
       <div class="n">
         ${stats.overdueFollowups}
       </div>
@@ -804,6 +804,19 @@ function renderStatCards(stats){
     </div>
 
   `;
+
+  document
+    .querySelectorAll('.stat-clickable')
+    .forEach(card => {
+      card.onclick = () => {
+        filter = card.dataset.statFilter;
+        currentPage = 1;
+        render();
+        document
+          .getElementById('applicationsPanel')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+    });
 }
 
 
@@ -1220,6 +1233,44 @@ function renderCharts(stats){
         }
       }
     );
+
+
+  // ---- Conversion funnel: Applied -> Responded -> Interview -> Offer ----
+  const funnelCtx = document.getElementById('funnelChart');
+  if(charts.funnel) charts.funnel.destroy();
+  const f = stats.funnel || { applied: 0, responded: 0, interview: 0, offer: 0 };
+  charts.funnel = new Chart(funnelCtx, {
+    type: 'bar',
+    data: {
+      labels: ['Applied', 'Responded', 'Interview', 'Offer'],
+      datasets: [{
+        data: [f.applied, f.responded, f.interview, f.offer],
+        backgroundColor: ['#4A5568', '#B8791A', '#0F6B5C', '#0F6B5C'],
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: 'Conversion funnel', font: { size: 11 }, color: c.text },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const pct = f.applied ? Math.round((ctx.parsed.x / f.applied) * 100) : 0;
+              return `${ctx.parsed.x} (${pct}% of applied)`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { beginAtZero: true, ticks: { stepSize: 1, color: c.soft, font: { size: isNarrow ? 8 : 10 } }, grid: { color: c.grid } },
+        y: { ticks: { color: c.soft, font: { size: isNarrow ? 9 : 11 } }, grid: { display: false } }
+      }
+    }
+  });
 }
 
 
@@ -1280,6 +1331,7 @@ function renderFilters(){
 
   const cats = [
     'All',
+    'Follow-up Due',
     ...STATUSES
   ];
 
@@ -1358,7 +1410,12 @@ function renderTable(){
 
 
   // Filter
-  if(filter !== 'All'){
+  if(filter === 'Follow-up Due'){
+
+    list =
+      list.filter(a => isOverdue(a));
+
+  } else if(filter !== 'All'){
 
     list =
       list.filter(
@@ -2398,6 +2455,124 @@ document
       }
     }
   );
+
+
+// ============================================================
+// CSV EXPORT / IMPORT
+// ============================================================
+
+const CSV_COLUMNS = ['company', 'role', 'source', 'dateApplied', 'status', 'notes', 'portalLink'];
+const VALID_SOURCES = ['Wellfound','Naukri','Internshala','HiringCafe','Company site','Cold email','LinkedIn','Referral','Other'];
+
+function csvEscape(value){
+  const s = (value === undefined || value === null) ? '' : String(value);
+  if(/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+
+function exportCsv(){
+  if(!apps.length){
+    showToast('Nothing to export yet', 'error');
+    return;
+  }
+  const header = CSV_COLUMNS.join(',');
+  const rows = apps.map(a => CSV_COLUMNS.map(col => {
+    if(col === 'dateApplied') return csvEscape(a.dateApplied ? new Date(a.dateApplied).toISOString().slice(0,10) : '');
+    return csvEscape(a[col]);
+  }).join(','));
+  const csv = [header, ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `applications-${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  showToast(`Exported ${apps.length} applications`, 'success');
+}
+
+// Minimal CSV line parser: handles quoted fields with embedded commas/quotes.
+function parseCsv(text){
+  const lines = text.replace(/\r\n/g, '\n').split('\n').filter(l => l.trim() !== '');
+  if(!lines.length) return [];
+  const parseLine = (line) => {
+    const out = [];
+    let cur = '', inQuotes = false;
+    for(let i = 0; i < line.length; i++){
+      const ch = line[i];
+      if(inQuotes){
+        if(ch === '"' && line[i+1] === '"'){ cur += '"'; i++; }
+        else if(ch === '"'){ inQuotes = false; }
+        else { cur += ch; }
+      } else {
+        if(ch === '"'){ inQuotes = true; }
+        else if(ch === ','){ out.push(cur); cur = ''; }
+        else { cur += ch; }
+      }
+    }
+    out.push(cur);
+    return out;
+  };
+  const header = parseLine(lines[0]).map(h => h.trim());
+  return lines.slice(1).map(line => {
+    const cells = parseLine(line);
+    const row = {};
+    header.forEach((h, i) => { row[h] = (cells[i] || '').trim(); });
+    return row;
+  });
+}
+
+async function importCsv(file){
+  const text = await file.text();
+  const rows = parseCsv(text);
+  const validRows = rows.filter(r => r.company);
+
+  if(!validRows.length){
+    showToast('No valid rows found (need a "company" column)', 'error');
+    return;
+  }
+
+  let imported = 0;
+  for(const row of validRows){
+    const body = {
+      company: row.company,
+      role: row.role || '',
+      source: VALID_SOURCES.includes(row.source) ? row.source : 'Other',
+      dateApplied: row.dateApplied || undefined,
+      notes: row.notes || '',
+      portalLink: row.portalLink || '',
+      status: STATUSES.includes(row.status) ? row.status : 'Applied'
+    };
+    try {
+      await fetch(API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      imported++;
+    } catch(e){ /* skip failed row, keep going */ }
+  }
+
+  showToast(`Imported ${imported} of ${validRows.length} rows`, imported ? 'success' : 'error');
+  await loadApps();
+  await loadStats();
+}
+
+document.getElementById('exportCsvBtn')?.addEventListener('click', exportCsv);
+
+document.getElementById('importCsvBtn')?.addEventListener('click', () => {
+  document.getElementById('importCsvFile').click();
+});
+
+document.getElementById('importCsvFile')?.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  showToast('Importing...', 'success');
+  await importCsv(file);
+  e.target.value = '';
+});
 
 
 // ============================================================
