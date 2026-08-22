@@ -3,6 +3,7 @@
   "short_name": "Job Tracker",
   "description": "Every company, every follow-up, in one place.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#F6F5F1",
   "theme_color": "#0F6B5C",
