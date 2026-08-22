@@ -5,6 +5,7 @@ const cors = require('cors');
 const path = require('path');
 
 const applicationsRouter = require('./routes/applications');
+const tasksRouter = require('./routes/tasks');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,6 +21,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/api/applications', applicationsRouter);
+app.use('/api/tasks', tasksRouter);
 
 mongoose.connect(MONGODB_URI)
   .then(() => {

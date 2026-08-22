@@ -1271,6 +1271,67 @@ function renderCharts(stats){
       }
     }
   });
+
+  // ---- Source-wise success rate: % of applications via each source that reached interview ----
+  const successCtx = document.getElementById('successChart');
+  if(charts.success) charts.success.destroy();
+  const ss = stats.sourceSuccess || {};
+  const successLabels = Object.keys(ss).filter(k => ss[k].total > 0);
+  charts.success = new Chart(successCtx, {
+    type: 'bar',
+    data: {
+      labels: successLabels,
+      datasets: [{
+        data: successLabels.map(k => ss[k].pct),
+        backgroundColor: '#0F6B5C'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        title: { display: true, text: 'Interview rate by source', font: { size: 11 }, color: c.text },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const k = successLabels[ctx.dataIndex];
+              return `${ss[k].pct}% (${ss[k].interviewed} of ${ss[k].total})`;
+            }
+          }
+        }
+      },
+      scales: {
+        y: { beginAtZero: true, max: 100, ticks: { color: c.soft, font: { size: isNarrow ? 8 : 10 }, callback: v => v + '%' }, grid: { color: c.grid } },
+        x: { ticks: { color: c.soft, font: { size: isNarrow ? 7 : 10 }, maxRotation: 60, minRotation: isNarrow ? 60 : 0 }, grid: { color: c.grid } }
+      }
+    }
+  });
+
+  renderResponseTime(stats);
+}
+
+// ---- Average response time (days between applying and last status change) ----
+function renderResponseTime(stats){
+  const overallEl = document.getElementById('responseOverall');
+  const listEl = document.getElementById('responseList');
+  if(!overallEl || !listEl) return;
+
+  overallEl.textContent = (stats.avgResponseDays === null || stats.avgResponseDays === undefined)
+    ? '—'
+    : `${stats.avgResponseDays} day${stats.avgResponseDays === 1 ? '' : 's'}`;
+
+  const rows = stats.responseTimeByCompany || [];
+  if(!rows.length){
+    listEl.innerHTML = `<div class="panel-muted" style="font-size:10.5px;color:var(--ink-soft)">No responses tracked yet.</div>`;
+    return;
+  }
+  listEl.innerHTML = rows.map(r => `
+    <div class="response-row">
+      <span class="rc">${esc(r.company)}</span>
+      <span class="rd">${r.avgDays}d</span>
+    </div>
+  `).join('');
 }
 
 
@@ -1632,13 +1693,28 @@ function renderTable(){
                 data-label="Company"
               >
 
-                <div class="company">
-                  ${esc(a.company)}
+                <div class="company-row">
+                  <button class="star-btn ${a.priority ? 'starred' : ''}" data-star="${a._id}" title="Toggle priority">${a.priority ? '★' : '☆'}</button>
+                  <div class="company">
+                    ${esc(a.company)}
+                  </div>
                 </div>
 
                 <div class="role">
                   ${esc(a.role || '')}
                 </div>
+
+                ${
+                  a.eventDate
+
+                    ? `
+                      <div class="cal-event-label">
+                        📅 ${esc(a.eventLabel || 'Event')} · ${new Date(a.eventDate).toLocaleDateString('en-US',{month:'short',day:'numeric'})}
+                      </div>
+                    `
+
+                    : ''
+                }
 
                 ${
                   a.portalLink
@@ -1892,6 +1968,42 @@ function renderTable(){
           await loadApps();
 
           await loadStats();
+        };
+    });
+
+
+  // ==========================================================
+  // PRIORITY STAR
+  // ==========================================================
+
+  wrap
+    .querySelectorAll(
+      '[data-star]'
+    )
+    .forEach(btn => {
+
+      btn.onclick =
+        async ()=>{
+
+          const id = btn.dataset.star;
+          const app = apps.find(a => a._id === id);
+          const newVal = !app.priority;
+
+          await fetch(
+            `${API}/${id}`,
+            {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ priority: newVal })
+            }
+          );
+
+          showToast(
+            newVal ? 'Marked as priority' : 'Priority removed',
+            'success'
+          );
+
+          await loadApps();
         };
     });
 
@@ -2289,6 +2401,22 @@ document.getElementById(
         document
           .getElementById('f-portal')
           .value
+          .trim(),
+
+      priority:
+        document
+          .getElementById('f-priority')
+          .checked,
+
+      eventDate:
+        document
+          .getElementById('f-eventdate')
+          .value || undefined,
+
+      eventLabel:
+        document
+          .getElementById('f-eventlabel')
+          .value
           .trim()
     };
 
@@ -2314,7 +2442,9 @@ document.getElementById(
       'f-role',
       'f-date',
       'f-notes',
-      'f-portal'
+      'f-portal',
+      'f-eventdate',
+      'f-eventlabel'
     ]
     .forEach(
       id =>
@@ -2322,6 +2452,10 @@ document.getElementById(
           .getElementById(id)
           .value = ''
     );
+
+    document.getElementById('f-priority').checked = false;
+    document.getElementById('starToggle').classList.remove('starred');
+    document.getElementById('starToggle').textContent = '☆ Priority';
 
 
     document.getElementById(
@@ -2339,6 +2473,8 @@ document.getElementById(
     await loadApps();
 
     await loadStats();
+
+    await loadCalendar();
   };
 
 
@@ -2576,9 +2712,214 @@ document.getElementById('importCsvFile')?.addEventListener('change', async (e) =
 
 
 // ============================================================
+// CALENDAR (interview slots / OA deadlines + standalone reminders)
+// ============================================================
+
+let calendarEvents = [];
+let calendarTasks = [];
+let calCursor = new Date(); // month currently shown
+let calSelectedDate = null;
+
+function ymd(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+async function loadCalendar(){
+  try {
+    const res = await fetch(API + '/calendar');
+    calendarEvents = await res.json();
+  } catch(e){ calendarEvents = []; }
+
+  try {
+    const res2 = await fetch('/api/tasks');
+    calendarTasks = await res2.json();
+  } catch(e){ calendarTasks = []; }
+
+  renderCalendar();
+}
+
+function eventsOnDate(dateStr){
+  return calendarEvents.filter(ev => ev.eventDate && ymd(new Date(ev.eventDate)) === dateStr);
+}
+
+function tasksOnDate(dateStr){
+  return calendarTasks.filter(t => t.date && ymd(new Date(t.date)) === dateStr);
+}
+
+function renderCalendar(){
+  const grid = document.getElementById('calendarGrid');
+  const label = document.getElementById('calLabel');
+  if(!grid || !label) return;
+
+  const year = calCursor.getFullYear();
+  const month = calCursor.getMonth();
+  label.textContent = calCursor.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  const firstDay = new Date(year, month, 1);
+  const startOffset = firstDay.getDay(); // 0 = Sunday
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const todayStr = ymd(new Date());
+
+  const dows = ['S','M','T','W','T','F','S'];
+  let html = dows.map(d => `<div class="cal-dow">${d}</div>`).join('');
+
+  for(let i = 0; i < startOffset; i++){
+    html += `<div class="cal-day"></div>`;
+  }
+
+  for(let day = 1; day <= daysInMonth; day++){
+    const dateObj = new Date(year, month, day);
+    const dateStr = ymd(dateObj);
+    const dayEvents = eventsOnDate(dateStr);
+    const dayTasks = tasksOnDate(dateStr);
+    const classes = ['cal-day', 'in-month'];
+    if(dateStr === todayStr) classes.push('today');
+    if(dayEvents.length || dayTasks.length) classes.push('has-event');
+    if(dateStr === calSelectedDate) classes.push('selected');
+
+    let dots = '';
+    if(dayEvents.length) dots += '<span class="dot"></span>';
+    if(dayTasks.length) dots += '<span class="dot dot-task"></span>';
+
+    html += `<div class="${classes.join(' ')}" data-date="${dateStr}">${day}${dots}</div>`;
+  }
+
+  grid.innerHTML = html;
+
+  grid.querySelectorAll('.cal-day.in-month').forEach(cell => {
+    cell.onclick = () => {
+      calSelectedDate = cell.dataset.date;
+      renderCalendar();
+      renderCalendarDayEvents();
+    };
+  });
+
+  renderCalendarDayEvents();
+}
+
+function renderCalendarDayEvents(){
+  const wrap = document.getElementById('calendarDayEvents');
+  if(!wrap) return;
+
+  if(!calSelectedDate){
+    wrap.innerHTML = `<div class="panel-muted" style="font-size:11px;color:var(--ink-soft)">Tap any day to see or add reminders — teal dot = reminder, amber dot = interview/OA event.</div>`;
+    return;
+  }
+
+  const dayEvents = eventsOnDate(calSelectedDate);
+  const dayTasks = tasksOnDate(calSelectedDate);
+
+  let html = '';
+
+  html += `<div class="cal-section-label">Application events</div>`;
+  if(dayEvents.length){
+    html += dayEvents.map(ev => `
+      <div class="cal-event-item">
+        <div>
+          <div class="cal-event-company">${esc(ev.company)}${ev.role ? ' · ' + esc(ev.role) : ''}</div>
+          <div class="cal-event-label">${esc(ev.eventLabel || 'Event')}</div>
+        </div>
+      </div>
+    `).join('');
+  } else {
+    html += `<div class="panel-muted" style="font-size:11px;color:var(--ink-soft)">None on ${calSelectedDate}.</div>`;
+  }
+
+  html += `<div class="cal-section-label">Reminders / to-dos</div>`;
+  if(dayTasks.length){
+    html += dayTasks.map(t => `
+      <div class="cal-task-item ${t.done ? 'done' : ''}">
+        <input type="checkbox" data-task-toggle="${t._id}" ${t.done ? 'checked' : ''}>
+        <span class="cal-task-title">${esc(t.title)}</span>
+        <button data-task-del="${t._id}" title="Delete">✕</button>
+      </div>
+    `).join('');
+  } else {
+    html += `<div class="panel-muted" style="font-size:11px;color:var(--ink-soft)">No reminders yet.</div>`;
+  }
+
+  html += `
+    <div class="cal-add-task">
+      <input type="text" id="calNewTask" placeholder="e.g. Fill Google form for Stripe">
+      <button id="calAddTaskBtn" type="button">+ Add</button>
+    </div>
+  `;
+
+  wrap.innerHTML = html;
+
+  wrap.querySelectorAll('[data-task-toggle]').forEach(cb => {
+    cb.onchange = async () => {
+      await fetch(`/api/tasks/${cb.dataset.taskToggle}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ done: cb.checked })
+      });
+      await loadCalendar();
+    };
+  });
+
+  wrap.querySelectorAll('[data-task-del]').forEach(btn => {
+    btn.onclick = async () => {
+      await fetch(`/api/tasks/${btn.dataset.taskDel}`, { method: 'DELETE' });
+      await loadCalendar();
+    };
+  });
+
+  const addBtn = document.getElementById('calAddTaskBtn');
+  const input = document.getElementById('calNewTask');
+  const submitTask = async () => {
+    const title = input.value.trim();
+    if(!title) return;
+    await fetch('/api/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, date: calSelectedDate })
+    });
+    showToast('Reminder added', 'success');
+    await loadCalendar();
+  };
+  addBtn.onclick = submitTask;
+  input.addEventListener('keydown', (e) => { if(e.key === 'Enter'){ e.preventDefault(); submitTask(); } });
+}
+
+document.getElementById('calPrev')?.addEventListener('click', () => {
+  calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() - 1, 1);
+  renderCalendar();
+});
+
+document.getElementById('calNext')?.addEventListener('click', () => {
+  calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() + 1, 1);
+  renderCalendar();
+});
+
+
+// ============================================================
+// ADD-FORM: PRIORITY STAR TOGGLE + ADVANCED FIELDS TOGGLE
+// ============================================================
+
+document.getElementById('starToggle')?.addEventListener('click', () => {
+  const checkbox = document.getElementById('f-priority');
+  const btn = document.getElementById('starToggle');
+  checkbox.checked = !checkbox.checked;
+  btn.classList.toggle('starred', checkbox.checked);
+  btn.textContent = checkbox.checked ? '★ Priority' : '☆ Priority';
+});
+
+document.getElementById('toggleAdvanced')?.addEventListener('click', () => {
+  const fields = document.getElementById('advancedFields');
+  const btn = document.getElementById('toggleAdvanced');
+  const hidden = fields.classList.contains('hidden');
+  fields.classList.toggle('hidden', !hidden);
+  btn.textContent = hidden ? '− Hide interview / OA deadline date' : '+ Interview / OA deadline date';
+});
+
+
+// ============================================================
 // START APPLICATION
 // ============================================================
 
 loadApps();
 
 loadStats();
+
+loadCalendar();

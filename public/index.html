@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Application Tracker</title>
+<meta name="theme-color" content="#0F6B5C">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
@@ -38,42 +42,64 @@
       <button id="toggleForm" type="button">Hide</button>
     </h2>
     <div id="formBody">
-      <div class="form-grid">
-        <div class="wide">
-          <label>Company</label>
-          <input id="f-company" placeholder="e.g. Notion">
+
+      <div class="form-section">
+        <div class="form-section-head">
+          <span class="form-section-title">Basics</span>
+          <button type="button" id="starToggle" class="star-btn form-star-toggle" title="Mark as dream company">☆ Priority</button>
+          <input type="checkbox" id="f-priority" class="hidden">
         </div>
-        <div class="wide">
-          <label>Role</label>
-          <input id="f-role" placeholder="e.g. SWE Intern">
-        </div>
-        <div>
-          <label>Source</label>
-          <select id="f-source">
-            <option>Wellfound</option>
-            <option>Naukri</option>
-            <option>Internshala</option>
-            <option>HiringCafe</option>
-            <option>Company site</option>
-            <option>Cold email</option>
-            <option>LinkedIn</option>
-            <option>Referral</option>
-            <option>Other</option>
-          </select>
-        </div>
-        <div>
-          <label>Date applied</label>
-          <input id="f-date" type="date">
-        </div>
-        <div class="wide">
-          <label>Candidate portal link (where you check status)</label>
-          <input id="f-portal" placeholder="e.g. https://company.wd3.myworkdayjobs.com/...">
-        </div>
-        <div class="wide">
-          <label>Contact / notes (email sent to, OA link, deadline)</label>
-          <textarea id="f-notes" placeholder="e.g. sent cold mail to founder@x.com, OA due Fri"></textarea>
+        <div class="form-grid">
+          <div class="wide">
+            <label>Company</label>
+            <input id="f-company" placeholder="e.g. Notion">
+          </div>
+          <div class="wide">
+            <label>Role</label>
+            <input id="f-role" placeholder="e.g. SWE Intern">
+          </div>
+          <div>
+            <label>Source</label>
+            <select id="f-source">
+              <option>Wellfound</option>
+              <option>Naukri</option>
+              <option>Internshala</option>
+              <option>HiringCafe</option>
+              <option>Company site</option>
+              <option>Cold email</option>
+              <option>LinkedIn</option>
+              <option>Referral</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div>
+            <label>Date applied</label>
+            <input id="f-date" type="date">
+          </div>
+          <div class="wide">
+            <label>Candidate portal link (where you check status)</label>
+            <input id="f-portal" placeholder="e.g. https://company.wd3.myworkdayjobs.com/...">
+          </div>
         </div>
       </div>
+
+      <div class="form-section">
+        <label>Contact / notes (email sent to, OA link, deadline)</label>
+        <textarea id="f-notes" placeholder="e.g. sent cold mail to founder@x.com, OA due Fri"></textarea>
+      </div>
+
+      <button type="button" id="toggleAdvanced" class="advanced-toggle">+ Interview / OA deadline date</button>
+      <div id="advancedFields" class="form-grid advanced-fields hidden">
+        <div>
+          <label>Event date (interview / OA deadline)</label>
+          <input id="f-eventdate" type="date">
+        </div>
+        <div>
+          <label>Event label</label>
+          <input id="f-eventlabel" placeholder="e.g. Interview / OA deadline">
+        </div>
+      </div>
+
       <button class="add-btn" id="addBtn" type="button">+ Add to tracker</button>
     </div>
   </div>
@@ -85,7 +111,26 @@
       <div class="chart-box"><canvas id="sourceChart"></canvas></div>
       <div class="chart-box wide-chart"><canvas id="weeklyChart"></canvas></div>
       <div class="chart-box wide-chart"><canvas id="funnelChart"></canvas></div>
+      <div class="chart-box"><canvas id="successChart"></canvas></div>
+      <div class="chart-box response-box">
+        <div class="response-title">Avg response time</div>
+        <div class="response-overall" id="responseOverall">—</div>
+        <div class="response-list" id="responseList"></div>
+      </div>
     </div>
+  </div>
+
+  <div class="panel">
+    <h2>
+      Calendar
+      <div class="cal-nav">
+        <button id="calPrev" type="button">‹</button>
+        <span id="calLabel"></span>
+        <button id="calNext" type="button">›</button>
+      </div>
+    </h2>
+    <div id="calendarGrid" class="calendar-grid"></div>
+    <div id="calendarDayEvents" class="calendar-day-events"></div>
   </div>
 
   <div class="panel" id="applicationsPanel">
@@ -122,5 +167,12 @@
 </div>
 <button class="fab" id="fab" type="button" title="Add application">+</button>
 <script src="app.js"></script>
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
 </body>
-</html> 
+</html>

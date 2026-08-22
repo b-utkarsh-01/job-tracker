@@ -38,6 +38,11 @@ const ApplicationSchema = new mongoose.Schema({
   status: { type: String, enum: STATUS_VALUES, default: 'Applied' },
   notes: { type: String, trim: true },
   portalLink: { type: String, trim: true }, // candidate/application status portal URL
+  priority: { type: Boolean, default: false }, // starred / dream company
+
+  // Optional calendar event: an interview slot or an OA/task deadline
+  eventDate: { type: Date, default: null },
+  eventLabel: { type: String, trim: true, default: '' },
 
   nextFollowupDate: { type: Date, default: threeDaysFromNow },
   followedUpLast: { type: Boolean, default: null },

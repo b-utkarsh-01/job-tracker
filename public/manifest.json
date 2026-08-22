@@ -1,0 +1,13 @@
+{
+  "name": "Application Tracker",
+  "short_name": "Job Tracker",
+  "description": "Every company, every follow-up, in one place.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F6F5F1",
+  "theme_color": "#0F6B5C",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
