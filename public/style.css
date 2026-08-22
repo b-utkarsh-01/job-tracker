@@ -118,13 +118,14 @@ header{ margin-bottom: 22px; }
 h1{ font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.01em; }
 .sub{ color: var(--ink-soft); font-size: 13px; }
 
-.stats{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 20px 0 24px; }
+.stats{ display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 20px 0 24px; }
 .stat{ background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
 .stat .n{ font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; line-height: 1; }
 .stat .l{ font-size: 10.5px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
 .stat.overdue .n{ color: var(--coral); }
 .stat.pending .n{ color: var(--amber); }
 .stat.active .n{ color: var(--teal); }
+.stat.priority .n{ color: var(--amber); }
 .stat-clickable{ cursor: pointer; transition: border-color 0.15s, transform 0.1s; }
 .stat-clickable:hover{ border-color: var(--slate); }
 .stat-clickable:active{ transform: scale(0.98); }
@@ -189,7 +190,7 @@ textarea{ resize: vertical; min-height: 64px; }
 .checkbox-label{ display:flex; align-items:center; gap:6px; text-transform:none; font-size:12.5px; color:var(--ink); cursor:pointer; }
 .checkbox-label input{ width:auto; }
 
-.star-btn{ border:none; background:none; cursor:pointer; font-size:14px; padding:2px 4px; color: var(--slate); }
+.star-btn{ border:none; background:none; cursor:pointer; font-size:14px; padding:2px 4px; color: var(--line); }
 .star-btn.starred{ color: var(--amber); }
 .company-row{ display:flex; align-items:center; gap:6px; }
 
@@ -260,31 +261,51 @@ tr:last-child td{ border-bottom: none; }
 .cal-nav button:hover{ background: var(--slate-soft); }
 .cal-nav span{ min-width: 90px; text-align: center; font-weight: 600; }
 .calendar-grid{ display:grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-.cal-dow{ font-size: 9px; text-transform: uppercase; color: var(--ink-soft); text-align:center; padding-bottom: 4px; }
+.cal-dow{ font-size: 9px; text-transform: uppercase; color: var(--ink-soft); text-align:center; padding-bottom: 6px; font-weight: 600; }
 .cal-day{
-  position: relative; aspect-ratio: 1; border: 1px solid var(--line); border-radius: 8px;
-  font-size: 11px; padding: 4px; cursor: default; background: var(--bg);
+  position: relative; min-height: 78px; border: 1px solid var(--line); border-radius: 8px;
+  font-size: 11px; padding: 5px 4px; cursor: default; background: var(--bg);
+  display: flex; flex-direction: column; gap: 2px; overflow: hidden;
 }
 .cal-day.in-month{ background: var(--surface); cursor: pointer; }
-.cal-day.today{ border-color: var(--teal); }
-.cal-day.has-event{ border-color: var(--amber); }
-.cal-day.selected{ background: var(--slate-soft); }
-.cal-day .dot{ position:absolute; bottom:4px; right:4px; width:6px; height:6px; border-radius:50%; background: var(--amber); }
+.cal-day.in-month:hover{ border-color: var(--slate); }
+.cal-day.today .cal-day-num{
+  display: inline-flex; align-items:center; justify-content:center;
+  width: 18px; height: 18px; border-radius: 50%; background: var(--teal); color: #fff; font-weight: 700;
+}
+.cal-day.has-event{ border-color: var(--line); }
+.cal-day.selected{ background: var(--slate-soft); border-color: var(--slate); }
+.cal-day-num{ font-size: 11px; font-weight: 600; line-height: 1; margin-bottom: 2px; }
+.cal-day-chips{ display: flex; flex-direction: column; gap: 2px; overflow: hidden; }
+.cal-chip{
+  font-size: 9px; line-height: 1.5; padding: 1px 5px; border-radius: 4px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; text-align: left;
+}
+.cal-chip.chip-event{ background: var(--amber-soft); color: var(--amber); }
+.cal-chip.chip-task{ background: var(--teal-soft); color: var(--teal); }
+.cal-chip.chip-task.chip-done{ opacity: 0.5; text-decoration: line-through; }
+.cal-chip-more{ font-size: 9px; color: var(--ink-soft); padding-left: 5px; }
+
 .calendar-day-events{ margin-top: 12px; }
 .cal-event-item{ display:flex; justify-content:space-between; align-items:center; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
 .cal-event-item:last-child{ border-bottom: none; }
 .cal-event-company{ font-weight: 600; font-family: 'Space Grotesk', sans-serif; }
 .cal-event-label{ color: var(--amber); font-size: 10.5px; }
 
-.cal-day .dot-task{ background: var(--teal); left: 4px; right: auto; }
 .cal-section-label{ font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); margin: 12px 0 6px; }
 .cal-section-label:first-child{ margin-top: 0; }
-.cal-task-item{ display:flex; align-items:center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+.cal-task-item{ display:flex; align-items:center; gap: 10px; padding: 9px 2px; border-bottom: 1px solid var(--line); font-size: 12.5px; }
 .cal-task-item:last-child{ border-bottom: none; }
 .cal-task-item.done .cal-task-title{ text-decoration: line-through; color: var(--ink-soft); }
-.cal-task-title{ flex: 1; }
-.cal-task-item button{ border:none; background:none; cursor:pointer; color: var(--ink-soft); font-size: 12px; padding: 2px 4px; }
-.cal-task-item button:hover{ color: var(--coral); }
+.cal-task-checkbox{
+  width: 17px; height: 17px; flex-shrink: 0; margin: 0; accent-color: var(--teal); cursor: pointer;
+}
+.cal-task-title{ flex: 1; word-break: break-word; line-height: 1.4; }
+.cal-task-del-btn{
+  border:none; background:none; cursor:pointer; color: var(--ink-soft); font-size: 12px;
+  padding: 4px 6px; flex-shrink: 0; opacity: 0.55; border-radius: 5px;
+}
+.cal-task-del-btn:hover{ color: var(--coral); opacity: 1; background: var(--coral-soft); }
 .cal-add-task{ display:flex; gap: 6px; margin-top: 10px; }
 .cal-add-task input{ flex: 1; }
 .cal-add-task button{
@@ -336,6 +357,17 @@ kbd{ min-width:30px; padding:4px 7px; text-align:center; border:1px solid var(--
 }
 
 /* ---- Mobile-first responsive layout ---- */
+/* Calendar reads oversized on wide screens (cells stretch full panel width) —
+   cap it to a comfortable fixed width and shrink cells, desktop only. */
+@media (min-width: 681px){
+  .calendar-grid{ max-width: 620px; margin: 0 auto; gap: 5px; }
+  .cal-day{ min-height: 58px; padding: 4px; }
+  .cal-day-num{ font-size: 10px; }
+  .cal-chip{ font-size: 8.5px; padding: 1px 4px; }
+  .cal-chip-more{ font-size: 8.5px; }
+  .cal-dow{ font-size: 8.5px; }
+}
+
 @media (max-width: 680px){
   .notification-panel{ position:fixed; top:66px; right:12px; }
   body{ padding: 16px 12px 100px; }

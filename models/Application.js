@@ -27,6 +27,9 @@ const SOURCE_VALUES = [
 function threeDaysFromNow() {
   const d = new Date();
   d.setDate(d.getDate() + 3);
+  d.setHours(0, 0, 0, 0); // normalize to midnight so "due" triggers for the
+                          // whole day, not just after the exact time-of-day
+                          // the application was originally added
   return d;
 }
 

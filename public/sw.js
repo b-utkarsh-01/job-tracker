@@ -1,4 +1,4 @@
-const CACHE = 'job-tracker-v1';
+const CACHE = 'job-tracker-v2';
 const SHELL = ['/', '/index.html', '/style.css', '/app.js', '/manifest.json'];
 
 self.addEventListener('install', (e) => {
@@ -15,14 +15,20 @@ self.addEventListener('activate', (e) => {
   self.clients.claim();
 });
 
-// Network-first for API calls (always want fresh data), cache-first for the app shell.
+// Network-first everywhere: always try to fetch the latest file first (so a
+// normal reload always shows the newest deploy), and only fall back to the
+// cached copy if the network request actually fails (i.e. truly offline).
+// This also means the site correctly stops working when the server is down,
+// instead of silently serving a stale cached page.
 self.addEventListener('fetch', (e) => {
-  const url = new URL(e.request.url);
-  if(url.pathname.startsWith('/api/')){
-    e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
-    return;
-  }
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request))
+    fetch(e.request)
+      .then(res => {
+        // keep the cache fresh with whatever we just fetched successfully
+        const resClone = res.clone();
+        caches.open(CACHE).then(cache => cache.put(e.request, resClone));
+        return res;
+      })
+      .catch(() => caches.match(e.request))
   );
 });

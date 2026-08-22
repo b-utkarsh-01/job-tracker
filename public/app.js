@@ -803,6 +803,28 @@ function renderStatCards(stats){
       </div>
     </div>
 
+
+    <div class="stat priority stat-clickable" data-stat-filter="Priority">
+      <div class="n">
+        ${stats.priorityCount || 0}
+      </div>
+
+      <div class="l">
+        ⭐ Favourites
+      </div>
+    </div>
+
+
+    <div class="stat stat-clickable" data-stat-filter="NonPriority">
+      <div class="n">
+        ${stats.nonPriorityCount || 0}
+      </div>
+
+      <div class="l">
+        Non-favourites
+      </div>
+    </div>
+
   `;
 
   document
@@ -1476,6 +1498,16 @@ function renderTable(){
     list =
       list.filter(a => isOverdue(a));
 
+  } else if(filter === 'Priority'){
+
+    list =
+      list.filter(a => a.priority);
+
+  } else if(filter === 'NonPriority'){
+
+    list =
+      list.filter(a => !a.priority);
+
   } else if(filter !== 'All'){
 
     list =
@@ -2004,6 +2036,7 @@ function renderTable(){
           );
 
           await loadApps();
+          await loadStats();
         };
     });
 
@@ -2777,11 +2810,24 @@ function renderCalendar(){
     if(dayEvents.length || dayTasks.length) classes.push('has-event');
     if(dateStr === calSelectedDate) classes.push('selected');
 
-    let dots = '';
-    if(dayEvents.length) dots += '<span class="dot"></span>';
-    if(dayTasks.length) dots += '<span class="dot dot-task"></span>';
+    // Build small preview chips (max 2 visible, "+N more" beyond that) —
+    // like a mobile calendar's inline event list, not just a dot.
+    const allItems = [
+      ...dayEvents.map(ev => ({ text: `${ev.company}${ev.eventLabel ? ' · ' + ev.eventLabel : ''}`, cls: 'chip-event' })),
+      ...dayTasks.map(t => ({ text: t.title, cls: 'chip-task' + (t.done ? ' chip-done' : '') }))
+    ];
+    const visible = allItems.slice(0, 2);
+    const extra = allItems.length - visible.length;
 
-    html += `<div class="${classes.join(' ')}" data-date="${dateStr}">${day}${dots}</div>`;
+    const chipsHtml = visible.map(it => `<div class="cal-chip ${it.cls}">${esc(it.text)}</div>`).join('')
+      + (extra > 0 ? `<div class="cal-chip-more">+${extra} more</div>` : '');
+
+    html += `
+      <div class="${classes.join(' ')}" data-date="${dateStr}">
+        <span class="cal-day-num">${day}</span>
+        <div class="cal-day-chips">${chipsHtml}</div>
+      </div>
+    `;
   }
 
   grid.innerHTML = html;
@@ -2829,9 +2875,9 @@ function renderCalendarDayEvents(){
   if(dayTasks.length){
     html += dayTasks.map(t => `
       <div class="cal-task-item ${t.done ? 'done' : ''}">
-        <input type="checkbox" data-task-toggle="${t._id}" ${t.done ? 'checked' : ''}>
+        <input class="cal-task-checkbox" type="checkbox" data-task-toggle="${t._id}" ${t.done ? 'checked' : ''}>
         <span class="cal-task-title">${esc(t.title)}</span>
-        <button data-task-del="${t._id}" title="Delete">✕</button>
+        <button class="cal-task-del-btn" data-task-del="${t._id}" title="Delete">✕</button>
       </div>
     `).join('');
   } else {

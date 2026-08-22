@@ -5,6 +5,9 @@ const Application = require('../models/Application');
 function threeDaysFromNow() {
   const d = new Date();
   d.setDate(d.getDate() + 3);
+  d.setHours(0, 0, 0, 0); // normalize to midnight so "due" triggers for the
+                          // whole day, not just after the exact time-of-day
+                          // the application was originally added
   return d;
 }
 
@@ -95,6 +98,8 @@ router.get('/stats', async (req, res) => {
       ? Math.round(responseTimeByCompany.reduce((s, c) => s + c.avgDays, 0) / responseTimeByCompany.length)
       : null;
 
+    const priorityCount = apps.filter(a => a.priority).length;
+
     res.json({
       total: apps.length,
       byStatus,
@@ -104,7 +109,9 @@ router.get('/stats', async (req, res) => {
       funnel,
       sourceSuccess,
       avgResponseDays,
-      responseTimeByCompany
+      responseTimeByCompany,
+      priorityCount,
+      nonPriorityCount: apps.length - priorityCount
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
