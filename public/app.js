@@ -478,6 +478,8 @@ document.addEventListener(
 
       closeNotificationPanel();
 
+      if(pendingConfirmResolver) pendingConfirmResolver(false);
+
       return;
     }
 
@@ -724,6 +726,40 @@ function showToast(
 }
 
 
+// ------------------------------------------------------------
+// Reusable confirm dialog (replaces the browser's native confirm() with
+// something styled consistently with the rest of the app). Returns a
+// Promise<boolean> — true if the user confirmed, false if cancelled.
+// ------------------------------------------------------------
+
+let pendingConfirmResolver = null;
+
+function askConfirm(message){
+  return new Promise(resolve => {
+    const modal = document.getElementById('confirmModal');
+    const msgEl = document.getElementById('confirmMessage');
+    const yesBtn = document.getElementById('confirmYes');
+    const cancelBtn = document.getElementById('confirmCancel');
+    if(!modal){ resolve(true); return; }
+
+    msgEl.textContent = message;
+    modal.classList.remove('hidden');
+
+    const cleanup = (result) => {
+      modal.classList.add('hidden');
+      yesBtn.onclick = null;
+      cancelBtn.onclick = null;
+      pendingConfirmResolver = null;
+      resolve(result);
+    };
+
+    pendingConfirmResolver = cleanup;
+    yesBtn.onclick = () => cleanup(true);
+    cancelBtn.onclick = () => cleanup(false);
+  });
+}
+
+
 // ============================================================
 // LOAD APPLICATIONS
 // ============================================================
@@ -913,6 +949,22 @@ function chartColors(){
 function renderCharts(stats){
 
   lastStats = stats;
+
+  const chartsGrid = document.getElementById('chartsGrid');
+  const emptyState = document.getElementById('chartsEmptyState');
+
+  // Nothing added yet — degenerate/blank charts look broken to a new user.
+  // Toggle a friendly CTA instead of drawing empty Chart.js instances.
+  // The chart-box elements are hidden (not removed), so this is safe to
+  // reverse the moment the first application is added.
+  if(chartsGrid && emptyState){
+    const hasData = !!stats.total;
+    emptyState.classList.toggle('hidden', hasData);
+    chartsGrid.querySelectorAll('.chart-box').forEach(box => {
+      box.classList.toggle('hidden', !hasData);
+    });
+    if(!hasData) return;
+  }
 
   const c =
     chartColors();
@@ -2156,6 +2208,11 @@ function renderTable(){
       btn.onclick =
         async ()=>{
 
+          const app = apps.find(a => a._id === btn.dataset.del);
+          const label = app ? app.company : 'this application';
+          const confirmed = await askConfirm(`Delete ${label}? This can't be undone.`);
+          if(!confirmed) return;
+
           await fetch(
             `${API}/${btn.dataset.del}`,
             {
@@ -2163,6 +2220,8 @@ function renderTable(){
             }
           );
 
+
+          showToast('Deleted', 'success');
 
           await loadApps();
 
@@ -2959,7 +3018,13 @@ function renderCalendarDayEvents(){
 
   wrap.querySelectorAll('[data-task-del]').forEach(btn => {
     btn.onclick = async () => {
+      const task = calendarTasks.find(t => t._id === btn.dataset.taskDel);
+      const label = task ? task.title : 'this reminder';
+      const confirmed = await askConfirm(`Delete "${label}"?`);
+      if(!confirmed) return;
+
       await fetch(`/api/tasks/${btn.dataset.taskDel}`, { method: 'DELETE' });
+      showToast('Reminder deleted', 'success');
       await loadCalendar();
     };
   });
@@ -3017,6 +3082,42 @@ document.getElementById('toggleAdvanced')?.addEventListener('click', () => {
   fields.classList.toggle('hidden', !hidden);
   btn.textContent = hidden ? '− Hide interview / OA deadline date' : '+ Interview / OA deadline date';
 });
+
+
+// ============================================================
+// PWA INSTALL PROMPT (desktop + Android — shows a real "Install" button
+// instead of relying on users to find the address-bar icon themselves)
+// ============================================================
+
+let deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  document.getElementById('installBtn')?.classList.remove('hidden');
+});
+
+document.getElementById('installBtn')?.addEventListener('click', async () => {
+  if(!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  const { outcome } = await deferredInstallPrompt.userChoice;
+  if(outcome === 'accepted'){
+    showToast('App installed', 'success');
+  }
+  deferredInstallPrompt = null;
+  document.getElementById('installBtn')?.classList.add('hidden');
+});
+
+// Hide the button once installed (covers cases where the user installs via
+// the browser's own menu instead of our button, or on later visits).
+window.addEventListener('appinstalled', () => {
+  document.getElementById('installBtn')?.classList.add('hidden');
+  deferredInstallPrompt = null;
+});
+
+if(window.matchMedia('(display-mode: standalone)').matches){
+  document.getElementById('installBtn')?.classList.add('hidden');
+}
 
 
 // ============================================================

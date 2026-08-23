@@ -23,6 +23,13 @@
         <div class="sub">Every company, every follow-up, in one place.</div>
       </div>
       <div class="header-actions">
+        <button id="installBtn" class="icon-toggle install-btn hidden" type="button" title="Install app" aria-label="Install app">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3v12"></path>
+            <path d="M7 10l5 5 5-5"></path>
+            <path d="M5 19h14"></path>
+          </svg>
+        </button>
         <div class="bell-wrap">
           <button id="notificationBell" class="icon-toggle notification-bell" type="button" title="Follow-up reminders" aria-label="Follow-up reminders">
             🔔<span id="notificationBadge" class="notification-badge hidden">0</span>
@@ -33,6 +40,13 @@
       </div>
     </div>
   </header>
+
+  <div class="quick-nav" id="quickNav">
+    <a href="#stats" class="quick-nav-link">Overview</a>
+    <a href="#chartsPanel" class="quick-nav-link">Charts</a>
+    <a href="#calendarPanel" class="quick-nav-link">Calendar</a>
+    <a href="#applicationsPanel" class="quick-nav-link">Applications</a>
+  </div>
 
   <div class="stats" id="stats"></div>
 
@@ -104,9 +118,13 @@
     </div>
   </div>
 
-  <div class="panel">
+  <div class="panel" id="chartsPanel">
     <h2>Stats</h2>
-    <div class="charts">
+    <div class="charts" id="chartsGrid">
+      <div class="chart-empty-state hidden" id="chartsEmptyState" style="grid-column: 1 / -1; height: 220px;">
+        <strong>No data yet</strong>
+        Add your first application above and your stats will show up here.
+      </div>
       <div class="chart-box"><canvas id="statusChart"></canvas></div>
       <div class="chart-box"><canvas id="sourceChart"></canvas></div>
       <div class="chart-box wide-chart"><canvas id="weeklyChart"></canvas></div>
@@ -120,7 +138,7 @@
     </div>
   </div>
 
-  <div class="panel">
+  <div class="panel" id="calendarPanel">
     <h2>
       Calendar
       <div class="cal-nav">
@@ -145,11 +163,27 @@
     </h2>
     <input id="searchBox" class="search-box" placeholder="Search by company or role...">
     <div class="filters" id="filters"></div>
-    <div id="tableWrap"></div>
+    <div id="tableWrap">
+      <div class="loading-state">
+        <div class="spinner"></div>
+        Loading applications…
+      </div>
+    </div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
+
+<div id="confirmModal" class="shortcut-help hidden">
+  <div class="shortcut-card confirm-card">
+    <div class="confirm-message" id="confirmMessage">Are you sure?</div>
+    <div class="confirm-actions">
+      <button id="confirmCancel" type="button" class="confirm-btn confirm-cancel">Cancel</button>
+      <button id="confirmYes" type="button" class="confirm-btn confirm-danger">Delete</button>
+    </div>
+  </div>
+</div>
+
 <div id="shortcutHelp" class="shortcut-help hidden">
   <div class="shortcut-card">
     <div class="shortcut-head">

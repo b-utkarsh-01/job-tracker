@@ -30,6 +30,7 @@ body.dark{
   --slate-soft: #262A32;
 }
 
+html{ scroll-behavior: smooth; }
 *{ box-sizing: border-box; }
 body{
   margin:0; background: var(--bg); color: var(--ink);
@@ -40,6 +41,16 @@ body{
 .header-actions{ display:flex; align-items:center; gap:8px; flex-shrink:0; }
 .icon-toggle{ position:relative; background: var(--surface); border:1px solid var(--line); border-radius:999px; width:38px; height:38px; font-size:16px; cursor:pointer; }
 .icon-toggle:hover{ background:var(--slate-soft); }
+.install-btn{
+  color: var(--teal); border-color: var(--teal);
+  display: flex; align-items: center; justify-content: center;
+  animation: install-pulse 1.8s ease-in-out 2;
+}
+.install-btn:hover{ background: var(--teal-soft); }
+@keyframes install-pulse{
+  0%, 100% { box-shadow: 0 0 0 0 var(--teal-soft); }
+  50% { box-shadow: 0 0 0 6px var(--teal-soft); }
+}
 .notification-bell{ line-height:1; }
 .notification-badge{ position:absolute; top:-4px; right:-4px; min-width:17px; height:17px; padding:0 4px; border-radius:999px; background:var(--coral); color:#fff; font:700 9px/17px 'IBM Plex Mono', monospace; text-align:center; border:2px solid var(--surface); }
 .hidden{ display:none !important; }
@@ -114,6 +125,50 @@ body.dark .notification-panel .enable-btn:hover{
 }
 .dark-toggle:hover{ background: var(--slate-soft); }
 .wrap{ max-width: 1020px; margin: 0 auto; }
+
+.quick-nav{
+  position: sticky; top: 0; z-index: 15; display: flex; gap: 6px; flex-wrap: wrap;
+  background: var(--bg); padding: 10px 0; margin-bottom: 4px; border-bottom: 1px solid var(--line);
+}
+.quick-nav-link{
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; padding: 6px 13px;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--surface);
+  color: var(--ink-soft); text-decoration: none; cursor: pointer;
+}
+.quick-nav-link:hover{ background: var(--slate-soft); color: var(--ink); border-color: var(--slate); }
+
+.loading-state{
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; padding: 50px 20px; color: var(--ink-soft); font-size: 12.5px;
+}
+.spinner{
+  width: 26px; height: 26px; border-radius: 50%; border: 3px solid var(--line);
+  border-top-color: var(--teal); animation: spin 0.7s linear infinite;
+}
+@keyframes spin{ to { transform: rotate(360deg); } }
+
+.chart-empty-state{
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100%; text-align: center; padding: 12px; color: var(--ink-soft); font-size: 11.5px; gap: 6px;
+}
+.chart-empty-state strong{ font-family: 'Space Grotesk', sans-serif; font-size: 13px; color: var(--ink); }
+
+.confirm-card{ text-align: center; }
+.confirm-message{ font-size: 13.5px; margin-bottom: 18px; line-height: 1.5; }
+.confirm-actions{ display: flex; gap: 10px; }
+.confirm-btn{
+  flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--line);
+  font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; font-weight: 600; cursor: pointer;
+}
+.confirm-cancel{ background: var(--surface); color: var(--ink); }
+.confirm-cancel:hover{ background: var(--slate-soft); }
+.confirm-danger{ background: var(--coral); color: #fff; border-color: var(--coral); }
+.confirm-danger:hover{ opacity: 0.88; }
+
+@media (max-width: 680px){
+  .quick-nav{ overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+  .quick-nav-link{ flex-shrink: 0; }
+}
 header{ margin-bottom: 22px; }
 .eyebrow{ font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 6px; }
 h1{ font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.01em; }
