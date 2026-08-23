@@ -14,7 +14,7 @@ function threeDaysFromNow() {
 // GET all applications
 router.get('/', async (req, res) => {
   try {
-    const apps = await Application.find().sort({ nextFollowupDate: 1 });
+    const apps = await Application.find().sort({ createdAt: -1 });
     res.json(apps);
   } catch (err) {
     res.status(500).json({ error: err.message });

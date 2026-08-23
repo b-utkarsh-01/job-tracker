@@ -154,7 +154,7 @@ function renderNotificationPanel(){
     html += due
       .slice(0, 8)
       .map(a => `
-        <div class="notification-item">
+        <div class="notification-item" data-jump-company="${esc(a.company)}" title="View in Applications list">
 
           <div class="notification-company">
             ${esc(a.company)}
@@ -192,6 +192,23 @@ function renderNotificationPanel(){
 
 
   panel.innerHTML = html;
+
+
+  // Jump to that application in the Applications list, same as the
+  // calendar's follow-up-due items do.
+  panel.querySelectorAll('[data-jump-company]').forEach(item => {
+    item.onclick = () => {
+      const company = item.dataset.jumpCompany;
+      searchTerm = company.toLowerCase();
+      const searchBox = document.getElementById('searchBox');
+      if(searchBox) searchBox.value = company;
+      filter = 'All';
+      currentPage = 1;
+      render();
+      closeNotificationPanel();
+      document.getElementById('applicationsPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+  });
 
 
   // Enable notification button
@@ -302,7 +319,7 @@ function checkFollowupNotifications(
 
 
     // Browser notification
-    new Notification(
+    const notif = new Notification(
       'Job Tracker — Follow-up due',
       {
         body:
@@ -313,6 +330,21 @@ function checkFollowupNotifications(
         tag: `followup-${a._id}`
       }
     );
+
+    // Clicking the OS-level notification focuses the tab and jumps
+    // straight to that application, same as clicking it inside the
+    // in-app bell panel or the calendar.
+    notif.onclick = () => {
+      window.focus();
+      searchTerm = a.company.toLowerCase();
+      const searchBox = document.getElementById('searchBox');
+      if(searchBox) searchBox.value = a.company;
+      filter = 'All';
+      currentPage = 1;
+      render();
+      document.getElementById('applicationsPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      notif.close();
+    };
 
 
     notified[key] = Date.now();
@@ -711,6 +743,10 @@ async function loadApps(){
   renderNotificationPanel();
 
   checkFollowupNotifications();
+
+  // Keep the calendar's "Follow-ups due" chips in sync with the latest
+  // applications data (safe no-op if the calendar hasn't rendered yet).
+  if(typeof renderCalendar === 'function') renderCalendar();
 }
 
 
@@ -1538,42 +1574,17 @@ function renderTable(){
   }
 
 
-  // Sort overdue first
+  // Sort newest-added first (oldest last)
   list.sort(
     (a,b)=>{
 
-      const aOver =
-        isOverdue(a);
-
-      const bOver =
-        isOverdue(b);
-
-
-      if(
-        aOver &&
-        !bOver
-      ){
-
-        return -1;
-      }
-
-
-      if(
-        !aOver &&
-        bOver
-      ){
-
-        return 1;
-      }
-
-
       return (
         new Date(
-          a.nextFollowupDate
+          b.createdAt || b.dateApplied
         )
         -
         new Date(
-          b.nextFollowupDate
+          a.createdAt || a.dateApplied
         )
       );
     }
@@ -2745,7 +2756,7 @@ document.getElementById('importCsvFile')?.addEventListener('change', async (e) =
 
 
 // ============================================================
-// CALENDAR (interview slots / OA deadlines + standalone reminders)
+// CALENDAR (interview slots / OA deadlines + follow-ups + reminders)
 // ============================================================
 
 let calendarEvents = [];
@@ -2779,6 +2790,18 @@ function tasksOnDate(dateStr){
   return calendarTasks.filter(t => t.date && ymd(new Date(t.date)) === dateStr);
 }
 
+// Follow-up cycle dates come straight from the live applications list (the
+// same `apps` array the table renders from) so the calendar always matches
+// what's actually due — no separate endpoint needed. Rejected/Offer
+// applications are excluded since they're no longer being followed up on.
+function followupsOnDate(dateStr){
+  return apps.filter(a =>
+    a.nextFollowupDate &&
+    !['Rejected','Offer'].includes(a.status) &&
+    ymd(new Date(a.nextFollowupDate)) === dateStr
+  );
+}
+
 function renderCalendar(){
   const grid = document.getElementById('calendarGrid');
   const label = document.getElementById('calLabel');
@@ -2805,14 +2828,17 @@ function renderCalendar(){
     const dateStr = ymd(dateObj);
     const dayEvents = eventsOnDate(dateStr);
     const dayTasks = tasksOnDate(dateStr);
+    const dayFollowups = followupsOnDate(dateStr);
     const classes = ['cal-day', 'in-month'];
     if(dateStr === todayStr) classes.push('today');
-    if(dayEvents.length || dayTasks.length) classes.push('has-event');
+    if(dayEvents.length || dayTasks.length || dayFollowups.length) classes.push('has-event');
     if(dateStr === calSelectedDate) classes.push('selected');
 
     // Build small preview chips (max 2 visible, "+N more" beyond that) —
     // like a mobile calendar's inline event list, not just a dot.
+    // Follow-ups shown first since they're the most action-needed item.
     const allItems = [
+      ...dayFollowups.map(a => ({ text: `Follow up: ${a.company}`, cls: 'chip-followup' })),
       ...dayEvents.map(ev => ({ text: `${ev.company}${ev.eventLabel ? ' · ' + ev.eventLabel : ''}`, cls: 'chip-event' })),
       ...dayTasks.map(t => ({ text: t.title, cls: 'chip-task' + (t.done ? ' chip-done' : '') }))
     ];
@@ -2848,14 +2874,29 @@ function renderCalendarDayEvents(){
   if(!wrap) return;
 
   if(!calSelectedDate){
-    wrap.innerHTML = `<div class="panel-muted" style="font-size:11px;color:var(--ink-soft)">Tap any day to see or add reminders — teal dot = reminder, amber dot = interview/OA event.</div>`;
+    wrap.innerHTML = `<div class="panel-muted" style="font-size:11px;color:var(--ink-soft)">Tap any day to see or add reminders — coral = follow-up due, amber = interview/OA event, teal = your reminder.</div>`;
     return;
   }
 
   const dayEvents = eventsOnDate(calSelectedDate);
   const dayTasks = tasksOnDate(calSelectedDate);
+  const dayFollowups = followupsOnDate(calSelectedDate);
 
   let html = '';
+
+  html += `<div class="cal-section-label cal-section-followup">Follow-ups due</div>`;
+  if(dayFollowups.length){
+    html += dayFollowups.map(a => `
+      <div class="cal-event-item cal-followup-item" data-jump-company="${esc(a.company)}" title="View in Applications list">
+        <div>
+          <div class="cal-event-company">${esc(a.company)}${a.role ? ' · ' + esc(a.role) : ''}</div>
+          <div class="cal-followup-status">${esc(a.status)}</div>
+        </div>
+      </div>
+    `).join('');
+  } else {
+    html += `<div class="panel-muted" style="font-size:11px;color:var(--ink-soft)">None due on ${calSelectedDate}.</div>`;
+  }
 
   html += `<div class="cal-section-label">Application events</div>`;
   if(dayEvents.length){
@@ -2892,6 +2933,18 @@ function renderCalendarDayEvents(){
   `;
 
   wrap.innerHTML = html;
+
+  wrap.querySelectorAll('[data-jump-company]').forEach(item => {
+    item.onclick = () => {
+      const company = item.dataset.jumpCompany;
+      searchTerm = company.toLowerCase();
+      document.getElementById('searchBox').value = company;
+      filter = 'All';
+      currentPage = 1;
+      render();
+      document.getElementById('applicationsPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+  });
 
   wrap.querySelectorAll('[data-task-toggle]').forEach(cb => {
     cb.onchange = async () => {
@@ -2935,6 +2988,12 @@ document.getElementById('calPrev')?.addEventListener('click', () => {
 
 document.getElementById('calNext')?.addEventListener('click', () => {
   calCursor = new Date(calCursor.getFullYear(), calCursor.getMonth() + 1, 1);
+  renderCalendar();
+});
+
+document.getElementById('calToday')?.addEventListener('click', () => {
+  calCursor = new Date();
+  calSelectedDate = ymd(new Date());
   renderCalendar();
 });
 

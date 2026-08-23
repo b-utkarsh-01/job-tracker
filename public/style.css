@@ -46,8 +46,9 @@ body{
 .bell-wrap{ position:relative; }
 .notification-panel{ position:absolute; z-index:50; top:46px; right:0; width:min(360px, calc(100vw - 28px)); background:var(--surface); border:1px solid var(--line); border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,.12); padding:12px; }
 .notification-panel .panel-title{ font-family:'Space Grotesk',sans-serif; font-size:13px; font-weight:700; margin-bottom:8px; }
-.notification-panel .notification-item{ padding:8px 0; border-bottom:1px solid var(--line); }
+.notification-panel .notification-item{ padding:8px 6px; border-bottom:1px solid var(--line); cursor: pointer; border-radius: 6px; margin: 0 -6px; }
 .notification-panel .notification-item:last-child{ border-bottom:none; }
+.notification-panel .notification-item:hover{ background: var(--slate-soft); }
 .notification-panel .notification-company{ font-family:'Space Grotesk',sans-serif; font-size:12.5px; font-weight:600; }
 .notification-panel .notification-role{ color:var(--ink-soft); font-size:10.5px; margin-top:2px; }
 .notification-panel .notification-actions{ margin-top:10px; display:flex; gap:6px; }
@@ -190,7 +191,7 @@ textarea{ resize: vertical; min-height: 64px; }
 .checkbox-label{ display:flex; align-items:center; gap:6px; text-transform:none; font-size:12.5px; color:var(--ink); cursor:pointer; }
 .checkbox-label input{ width:auto; }
 
-.star-btn{ border:none; background:none; cursor:pointer; font-size:14px; padding:2px 4px; color: var(--line); }
+.star-btn{ border:none; background:none; cursor:pointer; font-size:14px; padding:2px 4px; color: var(--slate); }
 .star-btn.starred{ color: var(--amber); }
 .company-row{ display:flex; align-items:center; gap:6px; }
 
@@ -260,6 +261,7 @@ tr:last-child td{ border-bottom: none; }
 .cal-nav button{ font-family: 'IBM Plex Mono', monospace; font-size: 12px; background: none; border: 1px solid var(--line); border-radius: 6px; width:26px; height:26px; cursor: pointer; color: var(--ink-soft); }
 .cal-nav button:hover{ background: var(--slate-soft); }
 .cal-nav span{ min-width: 90px; text-align: center; font-weight: 600; }
+.cal-today-btn{ width: auto !important; padding: 0 10px; font-size: 11px !important; }
 .calendar-grid{ display:grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
 .cal-dow{ font-size: 9px; text-transform: uppercase; color: var(--ink-soft); text-align:center; padding-bottom: 6px; font-weight: 600; }
 .cal-day{
@@ -284,6 +286,7 @@ tr:last-child td{ border-bottom: none; }
 .cal-chip.chip-event{ background: var(--amber-soft); color: var(--amber); }
 .cal-chip.chip-task{ background: var(--teal-soft); color: var(--teal); }
 .cal-chip.chip-task.chip-done{ opacity: 0.5; text-decoration: line-through; }
+.cal-chip.chip-followup{ background: var(--coral-soft); color: var(--coral); font-weight: 600; }
 .cal-chip-more{ font-size: 9px; color: var(--ink-soft); padding-left: 5px; }
 
 .calendar-day-events{ margin-top: 12px; }
@@ -294,6 +297,10 @@ tr:last-child td{ border-bottom: none; }
 
 .cal-section-label{ font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); margin: 12px 0 6px; }
 .cal-section-label:first-child{ margin-top: 0; }
+.cal-section-label.cal-section-followup{ color: var(--coral); font-weight: 700; }
+.cal-followup-item{ border-left: 2px solid var(--coral); padding-left: 8px; cursor: pointer; border-radius: 4px; }
+.cal-followup-item:hover{ background: var(--coral-soft); }
+.cal-followup-status{ color: var(--ink-soft); font-size: 10.5px; }
 .cal-task-item{ display:flex; align-items:center; gap: 10px; padding: 9px 2px; border-bottom: 1px solid var(--line); font-size: 12.5px; }
 .cal-task-item:last-child{ border-bottom: none; }
 .cal-task-item.done .cal-task-title{ text-decoration: line-through; color: var(--ink-soft); }
