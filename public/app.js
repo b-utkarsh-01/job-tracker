@@ -10,6 +10,90 @@ const PAGE_SIZE = 8;
 let charts = {};
 
 // ============================================================
+// SORT STATE
+// ============================================================
+
+let sortCol = 'date';
+let sortDir = 'desc';
+
+// ============================================================
+// WEEKLY GOAL (persisted in DB for cross-device sync)
+// ============================================================
+
+let weeklyGoal = 5; // default, loaded from DB on startup
+
+// ============================================================
+// UNDO DELETE (soft-delete cache)
+// ============================================================
+
+let pendingUndo = null;
+let undoTimer = null;
+
+// ============================================================
+// STATUS COLORS
+// ============================================================
+
+const STATUS_COLORS = {
+  'Applied':                'status-applied',
+  'Under Consideration':    'status-under-consideration',
+  'OA/Task Pending':        'status-oa',
+  'Interview Scheduled':    'status-interview-scheduled',
+  'Interviewed':            'status-interviewed',
+  'Offer':                  'status-offer',
+  'Rejected':               'status-rejected',
+  'No Response':            'status-no-response',
+  'Ghosted':                'status-ghosted'
+};
+
+function statusBadge(status){
+  const cls = STATUS_COLORS[status] || 'status-applied';
+  return '<span class="status-badge ' + cls + '">' + esc(status) + '</span>';
+}
+
+// ============================================================
+// RISK / COLD DETECTION
+// ============================================================
+
+function getRisk(app){
+  if(['Rejected','Offer'].includes(app.status)) return null;
+  const lastChange = new Date(app.updatedAt || app.createdAt);
+  const now = new Date();
+  const daysSince = Math.floor((now - lastChange) / (1000 * 60 * 60 * 24));
+  if(daysSince >= 10) return { level: 'hot', label: 'Going cold', days: daysSince };
+  if(daysSince >= 5) return { level: 'warm', label: daysSince + 'd stale', days: daysSince };
+  return { level: 'cool', label: 'Active', days: daysSince };
+}
+
+function riskHtml(app){
+  const r = getRisk(app);
+  if(!r) return '';
+  return '<span class="kanban-card-risk"><span class="risk-dot risk-' + r.level + '"></span><span class="risk-label risk-label-' + r.level + '">' + r.label + '</span></span>';
+}
+
+// ============================================================
+// CONFETTI
+// ============================================================
+
+function fireConfetti(){
+  const container = document.getElementById('confetti-container');
+  if(!container) return;
+  const colors = ['#0F6B5C','#B8791A','#C13F2B','#7C3AED','#2563EB','#059669','#F59E0B','#EC4899'];
+  for(let i = 0; i < 50; i++){
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = Math.random() * 100 + '%';
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.animationDelay = Math.random() * 0.8 + 's';
+    piece.style.animationDuration = (2 + Math.random() * 1.5) + 's';
+    piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    piece.style.width = (6 + Math.random() * 8) + 'px';
+    piece.style.height = (6 + Math.random() * 8) + 'px';
+    container.appendChild(piece);
+  }
+  setTimeout(()=>{ container.innerHTML = ''; }, 4000);
+}
+
+// ============================================================
 // NOTIFICATIONS + KEYBOARD SHORTCUTS
 // ============================================================
 
@@ -610,6 +694,13 @@ function initDarkMode(){
   if(saved === 'dark'){
 
     document.body.classList.add('dark');
+  } else if(!saved){
+
+    // First visit: follow OS preference
+    if(window.matchMedia &&
+       window.matchMedia('(prefers-color-scheme: dark)').matches){
+      document.body.classList.add('dark');
+    }
   }
 
 
@@ -672,6 +763,12 @@ document.getElementById(
   render();
 };
 
+// Also check the placeholder matches our new search scope
+setTimeout(()=>{
+  const sb = document.getElementById('searchBox');
+  if(sb) sb.placeholder = 'Search company, role, or notes...';
+}, 0);
+
 
 // ============================================================
 // LINKIFY
@@ -726,6 +823,37 @@ function showToast(
 }
 
 
+// Show an undo toast with a button that calls onUndo
+function showUndoToast(msg, onUndo, durationMs = 5000){
+
+  const t =
+    document.getElementById('toast');
+
+  t.textContent = msg;
+  t.className = 'toast show undo-toast';
+
+  // Add undo button
+  let undoBtn = t.querySelector('.undo-btn');
+  if(!undoBtn){
+    undoBtn = document.createElement('button');
+    undoBtn.className = 'undo-btn';
+    undoBtn.textContent = 'Undo';
+    t.appendChild(undoBtn);
+  }
+
+  undoBtn.onclick = ()=>{
+    t.classList.remove('show');
+    clearTimeout(undoTimer);
+    onUndo();
+  };
+
+  undoTimer = setTimeout(()=>{
+    t.classList.remove('show');
+    if(pendingUndo) pendingUndo = null;
+  }, durationMs);
+}
+
+
 // ------------------------------------------------------------
 // Reusable confirm dialog (replaces the browser's native confirm() with
 // something styled consistently with the rest of the app). Returns a
@@ -734,7 +862,7 @@ function showToast(
 
 let pendingConfirmResolver = null;
 
-function askConfirm(message){
+function askConfirm(message, opts = {}){
   return new Promise(resolve => {
     const modal = document.getElementById('confirmModal');
     const msgEl = document.getElementById('confirmMessage');
@@ -745,10 +873,20 @@ function askConfirm(message){
     msgEl.textContent = message;
     modal.classList.remove('hidden');
 
+    // Dynamic button text and style
+    yesBtn.textContent = opts.confirmText || 'Delete';
+    if(opts.confirmClass){
+      yesBtn.className = 'confirm-btn ' + opts.confirmClass;
+    } else {
+      yesBtn.className = 'confirm-btn confirm-danger';
+    }
+
     const cleanup = (result) => {
       modal.classList.add('hidden');
       yesBtn.onclick = null;
       cancelBtn.onclick = null;
+      yesBtn.textContent = 'Delete';
+      yesBtn.className = 'confirm-btn confirm-danger';
       pendingConfirmResolver = null;
       resolve(result);
     };
@@ -783,6 +921,12 @@ async function loadApps(){
   // Keep the calendar's "Follow-ups due" chips in sync with the latest
   // applications data (safe no-op if the calendar hasn't rendered yet).
   if(typeof renderCalendar === 'function') renderCalendar();
+
+  // Update weekly goal progress
+  renderWeeklyGoal();
+
+  // Update kanban board
+  renderKanban();
 }
 
 
@@ -791,6 +935,9 @@ async function loadApps(){
 // ============================================================
 
 async function loadStats(){
+
+  // Show skeleton loading first
+  renderStatsSkeleton();
 
   const res =
     await fetch(API + '/stats');
@@ -801,6 +948,55 @@ async function loadStats(){
   renderStatCards(stats);
 
   renderCharts(stats);
+}
+
+
+// ============================================================
+// STATS SKELETON LOADING
+// ============================================================
+
+function renderStatsSkeleton(){
+  const statsEl = document.getElementById('stats');
+  if(!statsEl) return;
+  if(statsEl.children.length > 0) return;
+  statsEl.innerHTML = `
+    <div class="stat"><div class="skeleton-num"></div><div class="skeleton-label"></div></div>
+    <div class="stat"><div class="skeleton-num"></div><div class="skeleton-label"></div></div>
+    <div class="stat"><div class="skeleton-num"></div><div class="skeleton-label"></div></div>
+    <div class="stat"><div class="skeleton-num"></div><div class="skeleton-label"></div></div>
+    <div class="stat"><div class="skeleton-num"></div><div class="skeleton-label"></div></div>
+    <div class="stat"><div class="skeleton-num"></div><div class="skeleton-label"></div></div>
+  `;
+}
+
+
+// ============================================================
+// WEEKLY GOAL TRACKER
+// ============================================================
+
+function renderWeeklyGoal(){
+  const goalBar = document.getElementById('goalBar');
+  const goalText = document.getElementById('goalText');
+  const goalInput = document.getElementById('goalInput');
+  if(!goalBar || !goalText) return;
+
+  const now = new Date();
+  const dayOfWeek = now.getDay();
+  const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - mondayOffset);
+  weekStart.setHours(0, 0, 0, 0);
+
+  const thisWeekCount = apps.filter(a => {
+    const d = new Date(a.dateApplied || a.createdAt);
+    return d >= weekStart;
+  }).length;
+
+  const pct = weeklyGoal > 0 ? Math.min(100, Math.round((thisWeekCount / weeklyGoal) * 100)) : 0;
+  goalBar.style.width = pct + '%';
+  goalBar.className = 'goal-bar' + (pct >= 100 ? ' goal-complete' : '');
+  goalText.innerHTML = `<strong>${thisWeekCount}</strong> / ${weeklyGoal} applied this week`;
+  if(goalInput) goalInput.value = weeklyGoal;
 }
 
 
@@ -1571,6 +1767,148 @@ function isOverdue(app){
 
 
 // ============================================================
+// KANBAN / PIPELINE VIEW
+// ============================================================
+
+function renderKanban(){
+  const board = document.getElementById('kanbanBoard');
+  if(!board) return;
+
+  const kanbanStatuses = [
+    'Applied', 'Under Consideration', 'OA/Task Pending',
+    'Interview Scheduled', 'Interviewed', 'Offer'
+  ];
+  // Also include Rejected/Ghosted in a separate column
+  const rejectedStatuses = ['Rejected', 'No Response', 'Ghosted'];
+
+  // Column accent colors
+  const colColors = {
+    'Applied': '#4A5568',
+    'Under Consideration': '#0F6B5C',
+    'OA/Task Pending': '#B8791A',
+    'Interview Scheduled': '#7C3AED',
+    'Interviewed': '#2563EB',
+    'Offer': '#059669'
+  };
+
+  let html = '';
+
+  kanbanStatuses.forEach(status => {
+    const items = apps.filter(a => a.status === status);
+    const accent = colColors[status] || '#4A5568';
+    const cardsHtml = items.length === 0
+      ? '<div class="kanban-empty">Drop here</div>'
+      : items.map(a => kanbanCard(a)).join('');
+    html += `<div class="kanban-col" data-status="${status}" style="border-top: 3px solid ${accent}">
+      <div class="kanban-col-header">
+        <span class="kanban-col-title" style="color:${accent}">${status}</span>
+        <span class="kanban-col-count">${items.length}</span>
+      </div>
+      <div class="kanban-cards" data-drop-status="${status}">
+        ${cardsHtml}
+      </div>
+    </div>`;
+  });
+
+  // Rejected / No Response / Ghosted combined
+  const rejectedItems = apps.filter(a => rejectedStatuses.includes(a.status));
+  const rejectedCardsHtml = rejectedItems.length === 0
+    ? '<div class="kanban-empty">Drop here</div>'
+    : rejectedItems.map(a => kanbanCard(a)).join('');
+  html += `<div class="kanban-col" data-status="Rejected" style="border-top: 3px solid #C13F2B">
+    <div class="kanban-col-header">
+      <span class="kanban-col-title" style="color:#C13F2B">Closed</span>
+      <span class="kanban-col-count">${rejectedItems.length}</span>
+    </div>
+    <div class="kanban-cards" data-drop-status="Rejected">
+      ${rejectedCardsHtml}
+    </div>
+  </div>`;
+
+  board.innerHTML = html;
+
+  // Drag and drop
+  initKanbanDragDrop();
+}
+
+function kanbanCard(a){
+  const applied = a.dateApplied
+    ? new Date(a.dateApplied).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    : '';
+  const priorityStar = a.priority ? '<span class="kanban-card-priority">★</span> ' : '';
+  const dateSpan = applied ? `<span class="kanban-card-date">${applied}</span>` : '';
+  return `<div class="kanban-card" draggable="true" data-app-id="${a._id}">
+    <div class="kanban-card-company">
+      ${priorityStar}${esc(a.company)}
+    </div>
+    <div class="kanban-card-role">${esc(a.role || '')}</div>
+    <div class="kanban-card-meta">
+      <span class="kanban-card-source">${esc(a.source)}</span>
+      ${dateSpan}
+      ${riskHtml(a)}
+    </div>
+  </div>`;
+}
+
+let draggedAppId = null;
+
+function initKanbanDragDrop(){
+  const cards = document.querySelectorAll('.kanban-card[draggable]');
+  const dropZones = document.querySelectorAll('.kanban-cards');
+
+  cards.forEach(card => {
+    card.addEventListener('dragstart', (e)=>{
+      draggedAppId = card.dataset.appId;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    card.addEventListener('dragend', ()=>{
+      card.classList.remove('dragging');
+      draggedAppId = null;
+      document.querySelectorAll('.kanban-col').forEach(c => c.classList.remove('drag-over'));
+    });
+  });
+
+  dropZones.forEach(zone => {
+    zone.addEventListener('dragover', (e)=>{
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      zone.closest('.kanban-col').classList.add('drag-over');
+    });
+    zone.addEventListener('dragleave', (e)=>{
+      if(!zone.contains(e.relatedTarget)){
+        zone.closest('.kanban-col').classList.remove('drag-over');
+      }
+    });
+    zone.addEventListener('drop', async (e)=>{
+      e.preventDefault();
+      zone.closest('.kanban-col').classList.remove('drag-over');
+      const newStatus = zone.dataset.dropStatus;
+      if(!draggedAppId || !newStatus) return;
+
+      const app = apps.find(a => a._id === draggedAppId);
+      if(!app || app.status === newStatus) return;
+
+      await fetch(API + '/' + draggedAppId, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      // Confetti on Offer!
+      if(newStatus === 'Offer'){
+        fireConfetti();
+      }
+
+      showToast(app.company + ' → ' + newStatus, 'success');
+      await loadApps();
+      await loadStats();
+    });
+  });
+}
+
+
+// ============================================================
 // RENDER TABLE
 // ============================================================
 
@@ -1606,7 +1944,7 @@ function renderTable(){
   }
 
 
-  // Search
+  // Search (includes notes)
   if(searchTerm){
 
     list =
@@ -1622,25 +1960,39 @@ function renderTable(){
           (a.role || '')
             .toLowerCase()
             .includes(searchTerm)
+
+          ||
+
+          (a.notes || '')
+            .toLowerCase()
+            .includes(searchTerm)
       );
   }
 
 
-  // Sort newest-added first (oldest last)
-  list.sort(
-    (a,b)=>{
-
-      return (
-        new Date(
-          b.createdAt || b.dateApplied
-        )
-        -
-        new Date(
-          a.createdAt || a.dateApplied
-        )
-      );
+  // Sort (click-to-sort by column)
+  list.sort((a, b) => {
+    let va, vb;
+    switch(sortCol){
+      case 'company':
+        va = (a.company || '').toLowerCase();
+        vb = (b.company || '').toLowerCase();
+        return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+      case 'status':
+        va = STATUSES.indexOf(a.status);
+        vb = STATUSES.indexOf(b.status);
+        return sortDir === 'asc' ? va - vb : vb - va;
+      case 'source':
+        va = (a.source || '').toLowerCase();
+        vb = (b.source || '').toLowerCase();
+        return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+      case 'date':
+      default:
+        va = new Date(b.createdAt || b.dateApplied);
+        vb = new Date(a.createdAt || a.dateApplied);
+        return sortDir === 'asc' ? vb - va : va - vb;
     }
-  );
+  });
 
 
   const wrap =
@@ -1667,47 +2019,46 @@ function renderTable(){
   }
 
 
-  const totalPages =
-    Math.max(
-      1,
-      Math.ceil(
-        total / PAGE_SIZE
-      )
-    );
+  // When printing, show ALL items without pagination
+  const pageItems = isPrinting ? list : (() => {
+    const totalPages =
+      Math.max(
+        1,
+        Math.ceil(
+          total / PAGE_SIZE
+        )
+      );
 
+    if(
+      currentPage >
+      totalPages
+    ){
+      currentPage = totalPages;
+    }
 
-  if(
-    currentPage >
-    totalPages
-  ){
+    const start =
+      (currentPage - 1) *
+      PAGE_SIZE;
 
-    currentPage =
-      totalPages;
+    return list.slice(start, start + PAGE_SIZE);
+  })();
+
+  const totalPages = isPrinting ? 1 : Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  // Sort header helper
+  function sortClass(col){
+    if(sortCol !== col) return 'sortable';
+    return 'sortable sort-' + sortDir;
   }
 
-
-  const start =
-    (currentPage - 1) *
-    PAGE_SIZE;
-
-
-  const pageItems =
-    list.slice(
-      start,
-      start + PAGE_SIZE
-    );
-
+  // Bulk selection state
+  const selectedIds = getSelectedIds();
 
   wrap.innerHTML = `
 
     <div class="result-count">
 
-      ${total}
-      application${total === 1 ? '' : 's'}
-      · page
-      ${currentPage}
-      of
-      ${totalPages}
+      ${isPrinting ? 'All ' + total + ' application' + (total === 1 ? '' : 's') + ' (print view)' : total + ' application' + (total === 1 ? '' : 's') + ' · page ' + currentPage + ' of ' + totalPages}
 
     </div>
 
@@ -1718,19 +2069,25 @@ function renderTable(){
 
         <tr>
 
-          <th>
+          <th class="bulk-th">
+            <input type="checkbox" class="bulk-check" id="selectAll" title="Select all on this page"
+              ${selectedIds.length === pageItems.length && pageItems.length > 0 ? 'checked' : ''}
+            >
+          </th>
+
+          <th class="${sortClass('company')}" data-sort="company">
             Company / Role
           </th>
 
-          <th>
+          <th class="${sortClass('source')}" data-sort="source">
             Source
           </th>
 
-          <th>
+          <th class="${sortClass('date')}" data-sort="date">
             Applied
           </th>
 
-          <th>
+          <th class="${sortClass('status')}" data-sort="status">
             Status
           </th>
 
@@ -1777,12 +2134,21 @@ function renderTable(){
             ['Rejected','Offer']
               .includes(a.status);
 
+          const isSelected = selectedIds.includes(a._id);
+
 
           return `
 
             <tr
               data-id="${a._id}"
+              ${isSelected ? 'class="bulk-selected"' : ''}
             >
+
+              <td>
+                <input type="checkbox" class="bulk-check" data-bulk-id="${a._id}"
+                  ${isSelected ? 'checked' : ''}
+                >
+              </td>
 
               <td
                 data-label="Company"
@@ -1790,12 +2156,12 @@ function renderTable(){
 
                 <div class="company-row">
                   <button class="star-btn ${a.priority ? 'starred' : ''}" data-star="${a._id}" title="Toggle priority">${a.priority ? '★' : '☆'}</button>
-                  <div class="company">
+                  <div class="company editable-cell" data-inline-field="company" data-inline-id="${a._id}">
                     ${esc(a.company)}
                   </div>
                 </div>
 
-                <div class="role">
+                <div class="role editable-cell" data-inline-field="role" data-inline-id="${a._id}">
                   ${esc(a.role || '')}
                 </div>
 
@@ -1826,6 +2192,14 @@ function renderTable(){
                     `
 
                     : ''
+                }
+
+                ${
+                  (() => {
+                    const r = getRisk(a);
+                    if(!r) return '';
+                    return '<div style="margin-top:4px"><span class="risk-dot risk-' + r.level + '"></span><span class="risk-label risk-label-' + r.level + '">' + r.label + '</span></div>';
+                  })()
                 }
 
               </td>
@@ -1925,6 +2299,15 @@ function renderTable(){
 
                             </label>
 
+
+                            <button
+                              class="snooze-btn"
+                              data-snooze="${a._id}"
+                              title="Remind me later"
+                            >
+                              ⏰ Snooze
+                            </button>
+
                           </div>
 
                         </div>
@@ -2023,6 +2406,63 @@ function renderTable(){
 
 
   // ==========================================================
+  // SORT HEADERS
+  // ==========================================================
+
+  wrap.querySelectorAll('th.sortable').forEach(th => {
+    th.onclick = () => {
+      const col = th.dataset.sort;
+      if(sortCol === col){
+        sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortCol = col;
+        sortDir = 'asc';
+      }
+      render();
+    };
+  });
+
+
+  // ==========================================================
+  // SELECT ALL CHECKBOX
+  // ==========================================================
+
+  const selectAllEl = document.getElementById('selectAll');
+  if(selectAllEl){
+    selectAllEl.onchange = ()=>{
+      const checked = selectAllEl.checked;
+      wrap.querySelectorAll('[data-bulk-id]').forEach(cb => {
+        cb.checked = checked;
+        const id = cb.dataset.bulkId;
+        if(checked){
+          if(!bulkSelectedIds.includes(id)) bulkSelectedIds.push(id);
+        } else {
+          bulkSelectedIds = bulkSelectedIds.filter(x => x !== id);
+        }
+      });
+      updateBulkBar();
+    };
+  }
+
+
+  // ==========================================================
+  // BULK CHECKBOXES
+  // ==========================================================
+
+  wrap.querySelectorAll('[data-bulk-id]').forEach(cb => {
+    cb.onchange = ()=>{
+      const id = cb.dataset.bulkId;
+      if(cb.checked){
+        if(!bulkSelectedIds.includes(id)) bulkSelectedIds.push(id);
+      } else {
+        bulkSelectedIds = bulkSelectedIds.filter(x => x !== id);
+      }
+      updateBulkBar();
+    };
+  });
+
+
+  // ==========================================================
   // STATUS CHANGE
   // ==========================================================
 
@@ -2058,6 +2498,9 @@ function renderTable(){
             'Status updated',
             'success'
           );
+
+          // Confetti on Offer!
+          if(sel.value === 'Offer') fireConfetti();
 
 
           await loadApps();
@@ -2101,6 +2544,46 @@ function renderTable(){
           await loadApps();
           await loadStats();
         };
+    });
+
+
+  // ==========================================================
+  // INLINE EDIT (company + role)
+  // ==========================================================
+
+  wrap
+    .querySelectorAll('[data-inline-field]')
+    .forEach(cell => {
+      cell.ondblclick = ()=>{
+        const id = cell.dataset.inlineId;
+        const field = cell.dataset.inlineField;
+        const appData = apps.find(a => a._id === id);
+        if(!appData) return;
+        const currentVal = appData[field] || '';
+        cell.innerHTML = '<input class="inline-edit" type="text" value="' + esc(currentVal) + '">';
+        const input = cell.querySelector('input');
+        input.focus();
+        input.select();
+        const save = async ()=>{
+          const newVal = input.value.trim();
+          if(newVal !== currentVal){
+            await fetch(API + '/' + id, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ [field]: newVal })
+            });
+            showToast((field === 'company' ? 'Company' : 'Role') + ' updated', 'success');
+            await loadApps();
+          } else {
+            cell.textContent = currentVal;
+          }
+        };
+        input.onblur = save;
+        input.onkeydown = (e)=>{
+          if(e.key === 'Enter'){ e.preventDefault(); input.blur(); }
+          if(e.key === 'Escape'){ cell.textContent = currentVal; }
+        };
+      };
     });
 
 
@@ -2196,7 +2679,7 @@ function renderTable(){
 
 
   // ==========================================================
-  // DELETE
+  // DELETE (with UNDO)
   // ==========================================================
 
   wrap
@@ -2210,22 +2693,45 @@ function renderTable(){
 
           const app = apps.find(a => a._id === btn.dataset.del);
           const label = app ? app.company : 'this application';
-          const confirmed = await askConfirm(`Delete ${label}? This can't be undone.`);
+          const confirmed = await askConfirm(`Delete ${label}?`);
           if(!confirmed) return;
 
+          const id = btn.dataset.del;
+          const deletedApp = apps.find(a => a._id === id);
+
           await fetch(
-            `${API}/${btn.dataset.del}`,
+            `${API}/${id}`,
             {
               method: 'DELETE'
             }
           );
 
-
           showToast('Deleted', 'success');
-
           await loadApps();
-
           await loadStats();
+
+          // Show undo toast for 5 seconds
+          if(deletedApp){
+            pendingUndo = deletedApp;
+            showUndoToast('Deleted ' + label, async ()=>{
+              if(!pendingUndo) return;
+              const d = pendingUndo;
+              await fetch(API, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  company: d.company, role: d.role, source: d.source,
+                  dateApplied: d.dateApplied, notes: d.notes,
+                  portalLink: d.portalLink, status: d.status,
+                  priority: d.priority, eventDate: d.eventDate, eventLabel: d.eventLabel
+                })
+              });
+              pendingUndo = null;
+              showToast('Restored ' + label, 'success');
+              await loadApps();
+              await loadStats();
+            });
+          }
         };
     });
 
@@ -2279,10 +2785,29 @@ function renderTable(){
           );
 
 
-          await loadApps();
-
-          await loadStats();
+          await loadApps();          await loadStats();
         };
+    });
+
+
+  // ==========================================================
+  // SNOOZE FOLLOW-UP (3 days by default)
+  // ==========================================================
+
+  wrap
+    .querySelectorAll('[data-snooze]')
+    .forEach(btn => {
+      btn.onclick = async ()=>{
+        const id = btn.dataset.snooze;
+        await fetch(`${API}/${id}/followup`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ answered: false, days: 3 })
+        });
+        showToast('Snoozed 3 days', 'success');
+        await loadApps();
+        await loadStats();
+      };
     });
 
 
@@ -2315,6 +2840,56 @@ function renderTable(){
       };
     });
 }
+
+
+// ============================================================
+// BULK ACTIONS
+// ============================================================
+
+let bulkSelectedIds = [];
+
+function getSelectedIds(){
+  return bulkSelectedIds;
+}
+
+function updateBulkBar(){
+  const bar = document.getElementById('bulkBar');
+  const countEl = document.getElementById('bulkCount');
+  if(!bar || !countEl) return;
+  if(bulkSelectedIds.length > 0){
+    bar.classList.remove('hidden');
+    countEl.textContent = bulkSelectedIds.length + ' selected';
+  } else {
+    bar.classList.add('hidden');
+  }
+}
+
+document.getElementById('bulkApplyBtn')?.addEventListener('click', async ()=>{
+  const statusSelect = document.getElementById('bulkStatusSelect');
+  const newStatus = statusSelect?.value;
+  if(!newStatus || !bulkSelectedIds.length){
+    showToast('Select a status first', 'error');
+    return;
+  }
+  for(const id of bulkSelectedIds){
+    await fetch(API + '/' + id, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus })
+    });
+  }
+  showToast('Updated ' + bulkSelectedIds.length + ' applications to ' + newStatus, 'success');
+  bulkSelectedIds = [];
+  updateBulkBar();
+  await loadApps();
+  await loadStats();
+});
+
+document.getElementById('bulkCancelBtn')?.addEventListener('click', ()=>{
+  bulkSelectedIds = [];
+  updateBulkBar();
+  render();
+});
 
 
 // ============================================================
@@ -2443,7 +3018,110 @@ function render(){
   renderFilters();
 
   renderTable();
+
+  updateBulkBar();
 }
+
+
+// ============================================================
+// DUPLICATE WARNING
+// ============================================================
+
+function checkDuplicate(){
+  const companyInput = document.getElementById('f-company');
+  const roleInput = document.getElementById('f-role');
+  const warning = document.getElementById('duplicateWarning');
+  if(!companyInput || !warning) return;
+  const val = companyInput.value.trim().toLowerCase();
+  if(!val){ warning.classList.remove('show'); return; }
+
+  const roleVal = (roleInput?.value || '').trim().toLowerCase();
+
+  // Check for exact match (same company + same role)
+  const exactMatch = apps.find(a =>
+    a.company.toLowerCase().trim() === val &&
+    (a.role || '').toLowerCase().trim() === roleVal &&
+    roleVal !== ''
+  );
+
+  // Check for company-only match
+  const companyMatch = apps.find(a =>
+    a.company.toLowerCase().trim() === val &&
+    (!exactMatch || a !== exactMatch)
+  );
+
+  warning.classList.remove('dup-company', 'dup-exact');
+
+  if(exactMatch){
+    warning.classList.add('show', 'dup-exact');
+    warning.textContent = '🔴 "' + exactMatch.company + ' — ' + (exactMatch.role || 'No role') + '" already exists (' + exactMatch.status + '). Add duplicate?';
+  } else if(companyMatch){
+    warning.classList.add('show', 'dup-company');
+    warning.textContent = '⚠️ "' + companyMatch.company + '" already exists (' + companyMatch.status + '). Add another entry?';
+  } else {
+    warning.classList.remove('show');
+  }
+}
+
+document.getElementById('f-company')?.addEventListener('input', checkDuplicate);
+document.getElementById('f-role')?.addEventListener('input', checkDuplicate);
+
+
+// ============================================================
+// PRINT / PDF SUMMARY
+// ============================================================
+
+let isPrinting = false;
+
+document.getElementById('printBtn')?.addEventListener('click', ()=>{
+  // Temporarily show ALL applications (no pagination) for print
+  isPrinting = true;
+  renderTable();
+
+  // Small delay to let the DOM update, then print
+  setTimeout(()=>{
+    window.print();
+
+    // After print dialog closes, restore pagination
+    isPrinting = false;
+    renderTable();
+  }, 100);
+});
+
+
+// ============================================================
+// WEEKLY GOAL: EDIT / SAVE
+// ============================================================
+
+document.getElementById('editGoalBtn')?.addEventListener('click', ()=>{
+  const inputGroup = document.getElementById('goalInputGroup');
+  const display = document.getElementById('goalDisplay');
+  const goalInput = document.getElementById('goalInput');
+  if(inputGroup) inputGroup.classList.toggle('hidden');
+  if(display) display.classList.toggle('hidden');
+  if(goalInput) goalInput.value = weeklyGoal;
+  document.getElementById('editGoalBtn').textContent =
+    inputGroup?.classList.contains('hidden') ? 'Edit' : 'Cancel';
+});
+
+document.getElementById('saveGoalBtn')?.addEventListener('click', ()=>{
+  const goalInput = document.getElementById('goalInput');
+  const val = parseInt(goalInput?.value, 10);
+  if(val && val > 0){
+    weeklyGoal = val;
+    // Save to DB for cross-device sync
+    fetch('/api/settings/weeklyGoal', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: val })
+    });
+    showToast('Weekly goal set to ' + val, 'success');
+  }
+  document.getElementById('goalInputGroup')?.classList.add('hidden');
+  document.getElementById('goalDisplay')?.classList.remove('hidden');
+  document.getElementById('editGoalBtn').textContent = 'Edit';
+  renderWeeklyGoal();
+});
 
 
 // ============================================================
@@ -2524,6 +3202,32 @@ document.getElementById(
     };
 
 
+    // Duplicate check — show confirm dialog if company already exists
+    const dupCompany = body.company.toLowerCase().trim();
+    const dupRole = (body.role || '').toLowerCase().trim();
+
+    const exactDup = apps.find(a =>
+      a.company.toLowerCase().trim() === dupCompany &&
+      (a.role || '').toLowerCase().trim() === dupRole &&
+      dupRole !== ''
+    );
+    const companyDup = !exactDup && apps.find(a =>
+      a.company.toLowerCase().trim() === dupCompany
+    );
+
+    if(exactDup || companyDup){
+      const isExact = !!exactDup;
+      const msg = isExact
+        ? '🔴 "' + exactDup.company + ' — ' + (exactDup.role || 'No role') + '" already exists (' + exactDup.status + '). Add duplicate?'
+        : '⚠️ "' + companyDup.company + '" already exists (' + companyDup.status + '). Add another entry?';
+      const ok = await askConfirm(msg, {
+        confirmText: isExact ? 'Yes, Add Duplicate' : 'Add Anyway',
+        confirmClass: isExact ? 'confirm-danger' : 'confirm-add'
+      });
+      if(!ok) return;
+    }
+
+
     await fetch(
       API,
       {
@@ -2565,6 +3269,10 @@ document.getElementById(
       'f-source'
     ).value =
       'Wellfound';
+
+
+    // Hide duplicate warning
+    document.getElementById('duplicateWarning')?.classList.remove('show');
 
 
     showToast(
@@ -2801,13 +3509,49 @@ async function importCsv(file){
 
 document.getElementById('exportCsvBtn')?.addEventListener('click', exportCsv);
 
+// Import CSV — show help dialog first
 document.getElementById('importCsvBtn')?.addEventListener('click', () => {
+  document.getElementById('csvImportModal')?.classList.remove('hidden');
+});
+
+// Close CSV import dialog
+document.getElementById('closeCsvImport')?.addEventListener('click', () => {
+  document.getElementById('csvImportModal')?.classList.add('hidden');
+});
+
+// Click outside to close
+document.getElementById('csvImportModal')?.addEventListener('click', (e) => {
+  if(e.target.id === 'csvImportModal'){
+    e.target.classList.add('hidden');
+  }
+});
+
+// Choose file button — triggers file picker
+document.getElementById('csvImportFileBtn')?.addEventListener('click', () => {
   document.getElementById('importCsvFile').click();
 });
 
+// Download template CSV
+document.getElementById('csvDownloadTemplate')?.addEventListener('click', () => {
+  const template = 'company,role,source,dateApplied,status,notes,portalLink\nGoogle,SWE Intern,LinkedIn,2026-08-10,Interview Scheduled,sent resume,https://careers.google.com/apply\nMeta,Backend Dev,Referral,2026-08-12,Applied,follow up next week,\nAmazon,SD Intern,Wellfound,2026-08-14,OA Task Pending,OA due Friday,';
+  const blob = new Blob([template], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'application-tracker-template.csv';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+  showToast('Template downloaded', 'success');
+});
+
+// Actual file import handler
 document.getElementById('importCsvFile')?.addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if(!file) return;
+  // Close the dialog
+  document.getElementById('csvImportModal')?.classList.add('hidden');
   showToast('Importing...', 'success');
   await importCsv(file);
   e.target.value = '';
@@ -3121,6 +3865,22 @@ if(window.matchMedia('(display-mode: standalone)').matches){
 
 
 // ============================================================
+// LOAD SETTINGS FROM DB
+// ============================================================
+
+async function loadSettings(){
+  try {
+    const res = await fetch('/api/settings');
+    const settings = await res.json();
+    if(settings.weeklyGoal !== undefined && settings.weeklyGoal !== null){
+      weeklyGoal = parseInt(settings.weeklyGoal, 10) || 5;
+      renderWeeklyGoal();
+    }
+  } catch(e){ /* ignore — use default */ }
+}
+
+
+// ============================================================
 // START APPLICATION
 // ============================================================
 
@@ -3129,3 +3889,5 @@ loadApps();
 loadStats();
 
 loadCalendar();
+
+loadSettings();

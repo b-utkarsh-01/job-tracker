@@ -43,12 +43,33 @@
 
   <div class="quick-nav" id="quickNav">
     <a href="#stats" class="quick-nav-link">Overview</a>
+    <a href="#kanbanPanel" class="quick-nav-link">Pipeline</a>
     <a href="#chartsPanel" class="quick-nav-link">Charts</a>
     <a href="#calendarPanel" class="quick-nav-link">Calendar</a>
     <a href="#applicationsPanel" class="quick-nav-link">Applications</a>
   </div>
 
   <div class="stats" id="stats"></div>
+
+  <div class="panel" id="weeklyGoalPanel">
+    <h2>
+      Weekly Goal
+      <button id="editGoalBtn" type="button">Edit</button>
+    </h2>
+    <div class="goal-row">
+      <div class="goal-input-group hidden" id="goalInputGroup">
+        <label>Target applications this week</label>
+        <input id="goalInput" type="number" min="1" max="100" placeholder="e.g. 5">
+        <button id="saveGoalBtn" type="button" class="goal-save-btn">Save</button>
+      </div>
+      <div class="goal-display" id="goalDisplay">
+        <div class="goal-bar-wrap">
+          <div class="goal-bar" id="goalBar"></div>
+        </div>
+        <div class="goal-text" id="goalText"></div>
+      </div>
+    </div>
+  </div>
 
   <div class="panel">
     <h2>
@@ -115,7 +136,13 @@
       </div>
 
       <button class="add-btn" id="addBtn" type="button">+ Add to tracker</button>
+      <div class="duplicate-warning" id="duplicateWarning">⚠️ A company with a similar name already exists. Add anyway?</div>
     </div>
+  </div>
+
+  <div class="panel" id="kanbanPanel">
+    <h2>Pipeline</h2>
+    <div class="kanban-board" id="kanbanBoard"></div>
   </div>
 
   <div class="panel" id="chartsPanel">
@@ -156,12 +183,30 @@
     <h2>
       Applications
       <div class="csv-actions">
+        <button id="printBtn" type="button" title="Print a clean summary report">🖨️ Print</button>
         <button id="exportCsvBtn" type="button" title="Download all applications as CSV">Export CSV</button>
         <button id="importCsvBtn" type="button" title="Add applications from a CSV file">Import CSV</button>
         <input id="importCsvFile" type="file" accept=".csv" class="hidden">
       </div>
     </h2>
-    <input id="searchBox" class="search-box" placeholder="Search by company or role...">
+    <div class="bulk-bar hidden" id="bulkBar">
+      <span id="bulkCount">0 selected</span>
+      <select id="bulkStatusSelect">
+        <option value="">Change status to…</option>
+        <option>Applied</option>
+        <option>Under Consideration</option>
+        <option>OA/Task Pending</option>
+        <option>Interview Scheduled</option>
+        <option>Interviewed</option>
+        <option>Offer</option>
+        <option>Rejected</option>
+        <option>No Response</option>
+        <option>Ghosted</option>
+      </select>
+      <button id="bulkApplyBtn" type="button" class="bulk-action-btn">Apply</button>
+      <button id="bulkCancelBtn" type="button" class="bulk-cancel-btn">✕</button>
+    </div>
+    <input id="searchBox" class="search-box" placeholder="Search company, role, or notes...">
     <div class="filters" id="filters"></div>
     <div id="tableWrap">
       <div class="loading-state">
@@ -173,6 +218,101 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<div id="csvImportModal" class="shortcut-help hidden">
+  <div class="shortcut-card csv-import-card">
+    <div class="csv-import-head">
+      <strong>📥 Import CSV</strong>
+      <button id="closeCsvImport" type="button" title="Close">✕</button>
+    </div>
+    <div class="csv-import-body">
+      <p class="csv-import-desc">Upload a CSV file to add multiple applications at once.</p>
+
+      <div class="csv-format-box">
+        <div class="csv-format-title">Required column:</div>
+        <div class="csv-format-row csv-required">
+          <div class="csv-col-name">company</div>
+          <div class="csv-col-desc">Company name — only mandatory field</div>
+        </div>
+
+        <div class="csv-format-title">Optional columns:</div>
+        <div class="csv-format-row">
+          <div class="csv-col-name">role</div>
+          <div class="csv-col-desc">Job title</div>
+        </div>
+        <div class="csv-format-row">
+          <div class="csv-col-name">source</div>
+          <div class="csv-col-desc">LinkedIn, Wellfound, Referral etc.</div>
+        </div>
+        <div class="csv-format-row">
+          <div class="csv-col-name">dateApplied</div>
+          <div class="csv-col-desc">YYYY-MM-DD</div>
+        </div>
+        <div class="csv-format-row">
+          <div class="csv-col-name">status</div>
+          <div class="csv-col-desc">Applied, Interview Scheduled etc.</div>
+        </div>
+        <div class="csv-format-row">
+          <div class="csv-col-name">notes</div>
+          <div class="csv-col-desc">Any notes or links</div>
+        </div>
+        <div class="csv-format-row">
+          <div class="csv-col-name">portalLink</div>
+          <div class="csv-col-desc">Career page URL</div>
+        </div>
+      </div>
+
+      <div class="csv-sample">
+        <div class="csv-sample-title">Example CSV:</div>
+        <div class="csv-sample-table-wrap">
+          <table class="csv-sample-table">
+            <thead>
+              <tr>
+                <th>company</th>
+                <th>role</th>
+                <th>source</th>
+                <th>dateApplied</th>
+                <th>status</th>
+                <th>notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Google</td>
+                <td>SWE Intern</td>
+                <td>LinkedIn</td>
+                <td>2026-08-10</td>
+                <td>Interview Scheduled</td>
+                <td>sent resume</td>
+              </tr>
+              <tr>
+                <td>Meta</td>
+                <td>Backend Dev</td>
+                <td>Referral</td>
+                <td>2026-08-12</td>
+                <td>Applied</td>
+                <td>follow up next week</td>
+              </tr>
+              <tr>
+                <td>Amazon</td>
+                <td>SD Intern</td>
+                <td>Wellfound</td>
+                <td>2026-08-14</td>
+                <td>OA Task Pending</td>
+                <td>OA due Friday</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="csv-import-actions">
+        <button id="csvImportFileBtn" type="button" class="csv-import-btn">📁 Choose CSV File</button>
+        <button id="csvDownloadTemplate" type="button" class="csv-template-btn">⬇ Download Template</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div id="confirmModal" class="shortcut-help hidden">
   <div class="shortcut-card confirm-card">
@@ -200,6 +340,7 @@
     </div>
   </div>
 </div>
+<div id="confetti-container"></div>
 <button class="fab" id="fab" type="button" title="Add application">+</button>
 <script src="app.js"></script>
 <script>

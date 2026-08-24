@@ -171,16 +171,24 @@ router.patch('/:id', async (req, res) => {
   }
 });
 
-// PATCH answer the "did you follow up?" prompt -> rolls the cycle forward 3 days
+// PATCH answer the "did you follow up?" prompt -> rolls the cycle forward
+// Supports optional `days` parameter for snooze (default 3)
 router.patch('/:id/followup', async (req, res) => {
   try {
-    const { answered } = req.body; // boolean: true = yes, false = no
+    const { answered, days } = req.body; // answered: boolean, days: optional snooze duration
     const app = await Application.findById(req.params.id);
     if (!app) return res.status(404).json({ error: 'Not found' });
 
     app.followedUpLast = !!answered;
     app.followupCount += 1;
-    app.nextFollowupDate = threeDaysFromNow();
+
+    // Custom snooze: use provided days, minimum 1
+    const snoozeDays = (typeof days === 'number' && days >= 1) ? days : 3;
+    const d = new Date();
+    d.setDate(d.getDate() + snoozeDays);
+    d.setHours(0, 0, 0, 0);
+    app.nextFollowupDate = d;
+
     await app.save();
     res.json(app);
   } catch (err) {

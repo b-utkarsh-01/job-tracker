@@ -6,6 +6,7 @@ const path = require('path');
 
 const applicationsRouter = require('./routes/applications');
 const tasksRouter = require('./routes/tasks');
+const settingsRouter = require('./routes/settings');
 const Application = require('./models/Application');
 
 const app = express();
@@ -23,6 +24,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/api/applications', applicationsRouter);
 app.use('/api/tasks', tasksRouter);
+app.use('/api/settings', settingsRouter);
 
 // One-time cleanup: existing applications may have a nextFollowupDate that
 // still carries the exact time-of-day they were created at (a past bug),

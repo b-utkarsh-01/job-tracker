@@ -30,6 +30,23 @@ body.dark{
   --slate-soft: #262A32;
 }
 
+/* =============================================
+   CUSTOM SCROLLBAR
+   ============================================= */
+::-webkit-scrollbar{ width: 8px; height: 8px; }
+::-webkit-scrollbar-track{ background: transparent; }
+::-webkit-scrollbar-thumb{
+  background: var(--line); border-radius: 999px;
+  border: 2px solid transparent; background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover{ background: var(--ink-soft); border: 2px solid transparent; background-clip: content-box; }
+*{ scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+.kanban-cards::-webkit-scrollbar{ width: 5px; }
+.kanban-cards::-webkit-scrollbar-track{ background: transparent; }
+.kanban-cards::-webkit-scrollbar-thumb{ background: var(--line); border-radius: 999px; }
+.kanban-cards::-webkit-scrollbar-thumb:hover{ background: var(--ink-soft); }
+body.dark *{ scrollbar-color: var(--slate-soft) transparent; }
+
 html{ scroll-behavior: smooth; }
 *{ box-sizing: border-box; }
 body{
@@ -155,6 +172,79 @@ body.dark .notification-panel .enable-btn:hover{
 
 .confirm-card{ text-align: center; }
 .confirm-message{ font-size: 13.5px; margin-bottom: 18px; line-height: 1.5; }
+
+/* =============================================
+   CSV IMPORT DIALOG
+   ============================================= */
+.csv-import-card{ width: min(480px, calc(100vw - 32px)); text-align: left; max-height: calc(100vh - 40px); overflow-y: auto; box-sizing: border-box; }
+.csv-import-head{
+  display: flex; align-items: center; justify-content: space-between;
+  font-family: 'Space Grotesk', sans-serif; font-size: 16px; margin-bottom: 16px;
+}
+.csv-import-head button{ border: 0; background: none; color: var(--ink-soft); cursor: pointer; font-size: 16px; }
+.csv-import-head button:hover{ color: var(--ink); }
+.csv-import-desc{ font-size: 13px; color: var(--ink-soft); margin-bottom: 16px; line-height: 1.5; }
+
+.csv-format-box{
+  background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+  padding: 14px; margin-bottom: 16px;
+}
+.csv-format-title{
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--ink-soft); font-weight: 600; margin-bottom: 6px; margin-top: 10px;
+}
+.csv-format-title:first-child{ margin-top: 0; }
+.csv-format-row{
+  display: flex; align-items: center; gap: 10px; padding: 6px 0;
+  border-bottom: 1px solid var(--line); font-size: 12px;
+}
+.csv-format-row:last-child{ border-bottom: none; }
+.csv-col-name{
+  flex-shrink: 0; background: var(--surface); border: 1px solid var(--line);
+  border-radius: 5px; padding: 3px 8px; font-size: 11.5px; font-weight: 700;
+  color: var(--ink); font-family: 'IBM Plex Mono', monospace; min-width: 100px;
+  text-align: center;
+}
+.csv-col-desc{ color: var(--ink-soft); font-size: 11.5px; line-height: 1.3; }
+.csv-required .csv-col-name{ border-color: var(--coral); color: var(--coral); background: var(--coral-soft); }
+.csv-required .csv-col-desc{ color: var(--coral); font-weight: 500; }
+
+.csv-sample{ margin-bottom: 18px; }
+.csv-sample-title{ font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); font-weight: 600; margin-bottom: 6px; }
+.csv-sample-table-wrap{
+  border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+  overflow-x: auto;
+}
+.csv-sample-table{
+  width: 100%; border-collapse: collapse; font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.csv-sample-table th{
+  background: var(--bg); border-bottom: 2px solid var(--line);
+  padding: 8px 10px; text-align: left; font-size: 10px;
+  text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft);
+  font-weight: 700; white-space: nowrap;
+}
+.csv-sample-table td{
+  padding: 7px 10px; border-bottom: 1px solid var(--line);
+  color: var(--ink); white-space: nowrap;
+}
+.csv-sample-table tr:last-child td{ border-bottom: none; }
+.csv-sample-table tbody tr:hover{ background: var(--slate-soft); }
+
+.csv-import-actions{ display: flex; gap: 10px; }
+.csv-import-btn{
+  flex: 1; padding: 12px; border: none; border-radius: 9px;
+  background: var(--teal); color: #fff; font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600; font-size: 13px; cursor: pointer;
+}
+.csv-import-btn:hover{ opacity: 0.9; }
+.csv-template-btn{
+  padding: 12px 16px; border: 1px solid var(--line); border-radius: 9px;
+  background: var(--surface); color: var(--ink); font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px; cursor: pointer; white-space: nowrap;
+}
+.csv-template-btn:hover{ background: var(--slate-soft); }
 .confirm-actions{ display: flex; gap: 10px; }
 .confirm-btn{
   flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--line);
@@ -164,6 +254,8 @@ body.dark .notification-panel .enable-btn:hover{
 .confirm-cancel:hover{ background: var(--slate-soft); }
 .confirm-danger{ background: var(--coral); color: #fff; border-color: var(--coral); }
 .confirm-danger:hover{ opacity: 0.88; }
+.confirm-add{ background: var(--teal); color: #fff; border-color: var(--teal); }
+.confirm-add:hover{ opacity: 0.88; }
 
 @media (max-width: 680px){
   .quick-nav{ overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
@@ -386,8 +478,8 @@ tr:last-child td{ border-bottom: none; }
 .toast.success{ background: var(--teal); color: #fff; }
 .toast.error{ background: var(--coral); color: #fff; }
 
-.shortcut-help{ position:fixed; inset:0; z-index:100; background:rgba(0,0,0,.32); display:flex; align-items:center; justify-content:center; padding:20px; }
-.shortcut-card{ width:min(390px,100%); background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow:0 18px 50px rgba(0,0,0,.2); }
+.shortcut-help{ position:fixed; inset:0; z-index:100; background:rgba(0,0,0,.32); display:flex; align-items:center; justify-content:center; padding:16px; overflow-y: auto; }
+.shortcut-card{ width:min(390px,100%); background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow:0 18px 50px rgba(0,0,0,.2); box-sizing:border-box; }
 .shortcut-head{ display:flex; align-items:center; justify-content:space-between; font-family:'Space Grotesk',sans-serif; margin-bottom:12px; }
 .shortcut-head button{ border:0; background:none; color:var(--ink-soft); cursor:pointer; font-size:14px; }
 .shortcut-list{ display:grid; gap:7px; }
@@ -451,15 +543,366 @@ kbd{ min-width:30px; padding:4px 7px; text-align:center; border:1px solid var(--
   thead{ display: none; }
   tbody tr{
     background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
-    padding: 10px 12px; margin-bottom: 10px;
+    padding: 10px 12px; margin-bottom: 10px; position: relative;
   }
-  tbody td{ border-bottom: none; padding: 6px 0; }
+  tbody td{ border-bottom: none; padding: 5px 0; }
   tbody td[data-label]::before{
     content: attr(data-label);
     display: block; font-size: 9px; text-transform: uppercase; letter-spacing: 0.07em;
     color: var(--ink-soft); margin-bottom: 2px;
   }
+
+  /* Checkbox in top-right corner of card */
+  tbody td:first-child{
+    position: absolute; top: 10px; right: 10px;
+    padding: 0; width: auto; z-index: 2;
+  }
+  tbody td:first-child::before{ display: none; }
+  tbody td:first-child .bulk-check{ width: 20px; height: 20px; }
+  /* Company td takes full width */
+  tbody td[data-label="Company"]{
+    padding-right: 36px;
+  }
+
   .row-actions{ justify-content: flex-end; padding-top: 4px; }
 
   .fab{ display: flex; }
+
+  /* Bulk checkbox mobile */
+  th.bulk-th{ width: 36px; padding-left: 2px !important; }
+  .bulk-check{ width: 20px; height: 20px; border-radius: 6px; }
+  .bulk-check:checked::after{ left: 6px; top: 2px; width: 5px; height: 11px; border-width: 0 2.5px 2.5px 0; }
+  tbody td:first-child{ padding-right: 0; }
+  .bulk-bar{ padding: 10px; gap: 8px; flex-wrap: wrap; }
+  .bulk-bar select{ flex: 1; min-width: 0; }
+
+  /* CSV Import Dialog mobile */
+  .shortcut-help{ padding: 10px; }
+  .csv-import-card{ width: 100%; max-width: 100%; margin: 0; padding: 14px; max-height: calc(100vh - 20px); border-radius: 12px; }
+  .csv-import-head{ font-size: 14px; margin-bottom: 12px; }
+  .csv-import-desc{ font-size: 12px; margin-bottom: 12px; }
+  .csv-format-box{ padding: 10px 8px; margin-bottom: 12px; }
+  .csv-format-row{ flex-direction: column; align-items: stretch; gap: 3px; padding: 7px 0; }
+  .csv-col-name{ min-width: auto; text-align: left; font-size: 10.5px; display: inline-block; width: auto; }
+  .csv-col-desc{ font-size: 10.5px; }
+  .csv-sample-table-wrap{ overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .csv-sample-table{ font-size: 9.5px; min-width: 400px; }
+  .csv-sample-table th, .csv-sample-table td{ padding: 5px 6px; white-space: nowrap; }
+  .csv-import-actions{ flex-direction: column; gap: 8px; }
+  .csv-import-btn, .csv-template-btn{ width: 100%; text-align: center; padding: 11px; font-size: 12px; }
 }
+
+/* =============================================
+   WEEKLY GOAL TRACKER
+   ============================================= */
+.goal-row{ display: flex; flex-direction: column; gap: 10px; }
+.goal-display{ display: flex; align-items: center; gap: 14px; }
+.goal-bar-wrap{
+  flex: 1; height: 22px; background: var(--line); border-radius: 999px; overflow: hidden;
+  position: relative;
+}
+.goal-bar{
+  height: 100%; border-radius: 999px; transition: width 0.5s ease;
+  background: var(--teal);
+}
+.goal-bar.goal-complete{ background: var(--teal); }
+.goal-bar.goal-behind{ background: var(--amber); }
+.goal-text{ font-size: 12.5px; color: var(--ink-soft); white-space: nowrap; min-width: 80px; text-align: right; }
+.goal-text strong{ color: var(--ink); font-family: 'Space Grotesk', sans-serif; }
+.goal-input-group{ display: flex; gap: 8px; align-items: flex-end; }
+.goal-input-group label{ margin-bottom: 0; }
+.goal-input-group input{ width: 100px; }
+.goal-save-btn{
+  padding: 9px 14px; border: none; border-radius: 7px; background: var(--teal); color: #fff;
+  font-family: 'IBM Plex Mono', monospace; font-size: 12px; cursor: pointer; white-space: nowrap;
+}
+.goal-save-btn:hover{ opacity: 0.9; }
+
+/* =============================================
+   BULK ACTIONS BAR
+   ============================================= */
+.bulk-bar{
+  display: flex; align-items: center; gap: 10px; padding: 10px 14px; margin-bottom: 10px;
+  background: var(--teal-soft); border: 1px solid var(--teal); border-radius: 9px;
+  font-size: 12px; flex-wrap: wrap;
+}
+.bulk-bar span{ font-weight: 600; color: var(--teal); }
+.bulk-bar select{ padding: 6px 8px; font-size: 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.bulk-action-btn{
+  padding: 6px 14px; border: none; border-radius: 7px; background: var(--teal); color: #fff;
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; font-weight: 600; cursor: pointer;
+}
+.bulk-action-btn:hover{ opacity: 0.9; }
+.bulk-cancel-btn{
+  background: none; border: none; color: var(--ink-soft); font-size: 14px; cursor: pointer; padding: 4px;
+}
+.bulk-cancel-btn:hover{ color: var(--coral); }
+
+/* =============================================
+   CUSTOM CHECKBOX (bulk select)
+   ============================================= */
+.bulk-check{
+  width: 18px; height: 18px; cursor: pointer; position: relative;
+  -webkit-appearance: none; appearance: none; margin: 0;
+  border: 2px solid var(--line); border-radius: 5px;
+  background: var(--surface); transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+.bulk-check:hover{ border-color: var(--teal); }
+.bulk-check:checked{
+  background: var(--teal); border-color: var(--teal);
+}
+.bulk-check:checked::after{
+  content: '';
+  position: absolute; left: 5px; top: 1px;
+  width: 5px; height: 10px;
+  border: solid #fff; border-width: 0 2.5px 2.5px 0;
+  transform: rotate(45deg);
+}
+.bulk-check:focus-visible{ outline: 2px solid var(--teal); outline-offset: 2px; }
+th.bulk-th{ width: 40px; text-align: center; padding-left: 4px !important; }
+th.bulk-th .bulk-check{ margin: 0 auto; }
+
+/* Selected row highlight */
+tr.bulk-selected{ background: var(--teal-soft) !important; }
+tr.bulk-selected td{ border-bottom-color: var(--teal-soft); }
+
+/* =============================================
+   SKELETON LOADING (stats + charts)
+   ============================================= */
+@keyframes shimmer{
+  0% { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
+}
+.skeleton-num{
+  width: 60%; height: 22px; border-radius: 6px;
+  background: linear-gradient(90deg, var(--line) 25%, var(--slate-soft) 50%, var(--line) 75%);
+  background-size: 400px 100%; animation: shimmer 1.5s infinite;
+}
+.skeleton-label{
+  width: 40%; height: 10px; border-radius: 4px; margin-top: 6px;
+  background: linear-gradient(90deg, var(--line) 25%, var(--slate-soft) 50%, var(--line) 75%);
+  background-size: 400px 100%; animation: shimmer 1.5s infinite;
+}
+.chart-skeleton{
+  display: flex; align-items: center; justify-content: center;
+  height: 100%; color: var(--ink-soft); font-size: 12px;
+}
+
+/* =============================================
+   SORT HEADERS
+   ============================================= */
+th.sortable{ cursor: pointer; user-select: none; position: relative; padding-right: 16px !important; }
+th.sortable:hover{ color: var(--ink); }
+th.sortable::after{ content: '⇅'; position: absolute; right: 4px; font-size: 10px; opacity: 0.4; }
+th.sort-asc::after{ content: '↑'; opacity: 0.9; color: var(--teal); }
+th.sort-desc::after{ content: '↓'; opacity: 0.9; color: var(--teal); }
+
+/* =============================================
+   INLINE EDIT (company + role)
+   ============================================= */
+.inline-edit{
+  width: 100%; padding: 3px 6px; border: 1px solid var(--teal); border-radius: 5px;
+  font-size: 12.5px; background: var(--surface); color: var(--ink);
+  font-family: 'IBM Plex Mono', monospace;
+}
+.inline-edit:focus{ outline: 2px solid var(--teal); outline-offset: 0; }
+.editable-cell{ cursor: text; border-radius: 4px; padding: 2px 4px; transition: background 0.15s; }
+.editable-cell:hover{ background: var(--slate-soft); }
+
+/* =============================================
+   SNOOZE BUTTON
+   ============================================= */
+.snooze-btn{
+  background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber);
+  border-radius: 5px; padding: 3px 8px; font-size: 10px; cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace; margin-left: 6px;
+}
+.snooze-btn:hover{ background: var(--amber); color: #fff; }
+
+/* =============================================
+   UNDO TOAST
+   ============================================= */
+.toast.undo-toast{
+  display: flex; align-items: center; gap: 12px;
+  background: var(--ink); color: var(--bg);
+}
+.toast.undo-toast .undo-btn{
+  background: var(--teal); color: #fff; border: none; border-radius: 6px;
+  padding: 5px 12px; font-size: 11.5px; font-weight: 700; cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace; white-space: nowrap;
+}
+.toast.undo-toast .undo-btn:hover{ opacity: 0.88; }
+
+/* =============================================
+   PRINT STYLES
+   ============================================= */
+@media print{
+  body{ background: #fff !important; color: #000 !important; padding: 10px !important; font-size: 11px; }
+  .header-actions, .quick-nav, .fab, .panel:not(#applicationsPanel),
+  .csv-actions, .filters, .search-box, .bulk-bar, .pagination,
+  .row-actions, .toast, .shortcut-help, .cal-nav, .calendar-grid,
+  .calendar-day-events, #weeklyGoalPanel, .followup-prompt, .portal-link,
+  .cal-event-label, #installBtn, .bell-wrap, #darkToggle{ display: none !important; }
+  .wrap{ max-width: 100%; }
+  #applicationsPanel{ border: none; padding: 0; margin: 0; }
+  #applicationsPanel h2{ font-size: 16px; margin-bottom: 8px; }
+  table{ font-size: 10px; }
+  th, td{ padding: 4px 6px; }
+  thead{ display: table-header-group; }
+  tr{ page-break-inside: avoid; }
+  .stat{ break-inside: avoid; }
+  .panel{ box-shadow: none; border: 1px solid #ddd; }
+  #stats{ grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .notes{ max-width: 150px; font-size: 10px; }
+}
+
+/* =============================================
+   DUPLICATE WARNING
+   ============================================= */
+.duplicate-warning{
+  border-radius: 8px; padding: 8px 12px; font-size: 12px; margin-top: 8px;
+  display: none;
+}
+.duplicate-warning.show{ display: block; }
+.duplicate-warning.dup-company{
+  background: var(--amber-soft); border: 1px solid var(--amber); color: var(--amber);
+}
+.duplicate-warning.dup-exact{
+  background: var(--coral-soft); border: 1px solid var(--coral); color: var(--coral);
+}
+
+/* =============================================
+   STATUS COLOR BADGES
+   ============================================= */
+.status-badge{
+  display: inline-block; padding: 3px 9px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 700; white-space: nowrap;
+}
+.status-applied{ background: var(--slate-soft); color: var(--slate); }
+.status-under-consideration{ background: var(--teal-soft); color: var(--teal); }
+.status-oa{ background: var(--amber-soft); color: var(--amber); }
+.status-interview-scheduled{ background: #EDE9FE; color: #7C3AED; }
+.status-interviewed{ background: #DBEAFE; color: #2563EB; }
+.status-offer{ background: #D1FAE5; color: #059669; }
+.status-rejected{ background: var(--coral-soft); color: var(--coral); }
+.status-no-response{ background: var(--slate-soft); color: var(--ink-soft); }
+.status-ghosted{ background: #F3E8FF; color: #9333EA; }
+
+body.dark .status-interview-scheduled{ background: #2D1B69; color: #A78BFA; }
+body.dark .status-interviewed{ background: #1E3A5F; color: #60A5FA; }
+body.dark .status-offer{ background: #064E3B; color: #34D399; }
+body.dark .status-ghosted{ background: #3B1F5E; color: #C084FC; }
+
+/* =============================================
+   RISK / COLD INDICATORS
+   ============================================= */
+.risk-dot{
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px;
+  vertical-align: middle;
+}
+.risk-hot{ background: #EF4444; animation: pulse-risk 1.5s infinite; }
+.risk-warm{ background: var(--amber); }
+.risk-cool{ background: var(--teal); }
+@keyframes pulse-risk{
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
+  50% { box-shadow: 0 0 0 5px rgba(239,68,68,0); }
+}
+.risk-label{ font-size: 10px; font-weight: 600; }
+.risk-label-hot{ color: #EF4444; }
+.risk-label-warm{ color: var(--amber); }
+.risk-label-cool{ color: var(--teal); }
+
+/* =============================================
+   KANBAN / PIPELINE BOARD
+   ============================================= */
+.kanban-board{
+  display: flex; gap: 16px; overflow-x: auto; padding: 4px 2px 12px;
+  -webkit-overflow-scrolling: touch; min-height: 200px;
+}
+.kanban-col{
+  flex: 0 0 250px; min-width: 250px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 16px; padding: 16px 14px;
+  display: flex; flex-direction: column; max-height: 500px;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+}
+.kanban-col:hover{
+  border-color: var(--slate); box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+}
+.kanban-col.drag-over{
+  border-color: var(--teal); background: var(--teal-soft);
+  box-shadow: 0 0 0 3px rgba(15,107,92,0.15), 0 4px 16px rgba(15,107,92,0.1);
+  transform: scale(1.01);
+}
+.kanban-col-header{
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px; padding-bottom: 12px; border-bottom: 2px solid var(--line);
+}
+.kanban-col-title{
+  font-family: 'Space Grotesk', sans-serif; font-size: 11.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink);
+}
+.kanban-col-count{
+  background: var(--bg); border: 1px solid var(--line); border-radius: 999px;
+  padding: 3px 10px; font-size: 11px; font-weight: 700; color: var(--ink-soft);
+  font-family: 'Space Grotesk', sans-serif; min-width: 26px; text-align: center;
+}
+.kanban-cards{
+  flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;
+  min-height: 60px; padding: 4px 2px;
+}
+.kanban-card{
+  background: var(--bg); border: 1px solid var(--line); border-radius: 12px;
+  padding: 14px 16px; cursor: grab; position: relative;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+.kanban-card:hover{
+  transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  border-color: var(--teal); background: var(--surface);
+}
+.kanban-card:active{ cursor: grabbing; transform: scale(0.98); }
+.kanban-card.dragging{ opacity: 0.35; transform: rotate(4deg) scale(0.95); }
+.kanban-card-company{
+  font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 700;
+  margin-bottom: 4px; color: var(--ink); line-height: 1.3;
+}
+.kanban-card-role{ font-size: 11.5px; color: var(--ink-soft); margin-bottom: 10px; line-height: 1.4; }
+.kanban-card-meta{ display: flex; align-items: center; gap: 7px; font-size: 10px; color: var(--ink-soft); flex-wrap: wrap; }
+.kanban-card-source{
+  background: var(--slate-soft); padding: 3px 8px; border-radius: 6px;
+  font-weight: 600; font-size: 10px; color: var(--ink-soft);
+}
+.kanban-card-date{ opacity: 0.55; font-weight: 500; }
+.kanban-card-priority{ color: var(--amber); font-size: 14px; margin-right: 2px; }
+.kanban-card-risk{ margin-left: auto; }
+.kanban-empty{
+  text-align: center; color: var(--ink-soft); font-size: 11.5px;
+  padding: 28px 12px; opacity: 0.35; font-style: italic;
+  border: 2px dashed var(--line); border-radius: 10px;
+  margin: 4px 0;
+}
+@media (max-width: 680px){
+  .kanban-board{ flex-direction: column; gap: 14px; padding: 4px 0 12px; }
+  .kanban-col{ flex: none; min-width: 100%; max-height: 300px; }
+  .kanban-card{ padding: 12px 14px; }
+}
+
+/* =============================================
+   CONFETTI ANIMATION
+   ============================================= */
+#confetti-container{
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 9999; overflow: hidden;
+}
+.confetti-piece{
+  position: absolute; width: 10px; height: 10px;
+  top: -10px; opacity: 0;
+  animation: confetti-fall 2.5s ease-out forwards;
+}
+@keyframes confetti-fall{
+  0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg) scale(0.3); opacity: 0; }
+}
+
