@@ -1,3 +1,79 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="dark_mode.svg" />
+  <source media="(prefers-color-scheme: light)" srcset="light_mode.svg" />
+  <img alt="b-utkarsh-01's GitHub profile" src="dark_mode.svg" />
+</picture>
+
+# Utkarsh Pathak
+
+> B.Tech Computer Science student at Shri Vaishnav Vidhyapeeth Vishawvidhyalya, Indore (Expected July 2026)
+
+[![Email](https://img.shields.io/badge/Email-butkarsh32%40gmail.com-red)](mailto:butkarsh32@gmail.com)
+[![Phone](https://img.shields.io/badge/Phone-%2B91--8959348283-green)](tel:+918959348283)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-utpathak-blue)](https://linkedin.com/in/utpathak)
+[![GitHub](https://img.shields.io/badge/GitHub-b--utkarsh--01-purple)](https://github.com/b-utkarsh-01)
+[![LeetCode](https://img.shields.io/badge/LeetCode-butkarsh32-orange)](https://leetcode.com/butkarsh32)
+
+---
+
+## 💼 Experience
+
+### Software Developer Intern — Inbotiq
+*May 2026 – July 2026*
+- Full-stack web development using React.js, Node.js, Express.js, and PostgreSQL
+- Workflow automation using n8n with API integrations and webhooks
+- Assisted in deploying and maintaining applications on Microsoft Azure
+
+### Business Intelligence & Data Visualization Intern — Tata Consultancy Services
+*Feb 2026 – May 2026*
+- Designed dashboards and reports using Looker Studio
+- Data preparation, KPI tracking, and visualization for business intelligence reporting
+- Analyzed datasets and presented insights through data-driven reports
+
+### Design Intern — EURO DREAMS EDUVERSEAS PRIVATE LIMITED
+*Jan 2025 – Feb 2025*
+- Designed and created graphic posters for company products with cross-functional teams
+- Applied color theory and visual design principles to enhance user-facing visual presentation
+
+### Organizer — VoidHack 5.0 & 6.0
+*July 2023 – 2024*
+- Core member of national-level hackathons; coordinated with participants and mentors
+
+---
+
+## 🛠️ Skills
+
+| Category | Technologies |
+|---|---|
+| **Languages** | C, C++, JavaScript, Java, Python, TypeScript |
+| **Frontend** | React.js, Tailwind CSS |
+| **Databases** | MongoDB, SQL |
+| **Cloud & Tools** | Azure, Git, GitHub, Docker, Jenkins, Firebase, MongoDB Atlas |
+| **OS** | Linux (Ubuntu), Windows |
+| **Automation** | n8n (Workflow Automation, API Integration, Webhooks) |
+
+---
+
+## 🚀 Projects
+
+| Project | Description |
+|---|---|
+| **Portfolio Studio** | Full-stack SaaS platform to create, customize, and publish professional portfolio websites using pre-built templates. Secure authentication, profile management, dynamic template rendering, and public sharing via custom URLs. |
+| **Personal Portfolio Website** | Responsive portfolio built with React and Tailwind CSS showcasing education, experience, projects, and certifications. |
+| **Recipe Catalog App** | Full-stack recipe management (React, Node.js, Express, MongoDB) with CRUD, favorites, and Docker containerization. |
+| **Secure Auth System (Next.js + Node.js)** | JWT-based access/refresh token auth with bcrypt, middleware for protected routes, role-based authorization, and input validation. |
+
+---
+
+## 📜 Certifications
+
+- **Sheryians — MERN Cohort** — Web Development, DSA, and aptitude training
+- **Digital Application Fundamentals (STEM) — NASSCOM FutureSkills Prime** — Fundamental digital concepts and industry-relevant skills
+- **IBM Virtual Internship — Cloud Computing** — Cloud computing concepts with IBM tools and project-based learning
+- **Coding Ninja's — Introduction to Java** — Core Java concepts and foundational knowledge
+
+---
+
 # Job Application Tracker
 
 A full-stack MERN-style web application for tracking job applications, managing follow-ups, and visualizing job search analytics. Built with Node.js, Express, MongoDB (via Mongoose), and a vanilla JavaScript frontend.
