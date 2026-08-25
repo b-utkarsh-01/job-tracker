@@ -136,6 +136,8 @@ router.get('/calendar', async (req, res) => {
 });
 
 // POST create new application
+// If `createdAt` is provided (undo-restore), override the auto-generated
+// timestamp so the app lands back at its original position in the sort.
 router.post('/', async (req, res) => {
   try {
     const app = new Application({
@@ -151,9 +153,37 @@ router.post('/', async (req, res) => {
       eventLabel: req.body.eventLabel || ''
     });
     await app.save();
+
+    // Preserve original createdAt for undo-restore (bypass Mongoose timestamps)
+    if (req.body.createdAt) {
+      await Application.collection.updateOne(
+        { _id: app._id },
+        { $set: { createdAt: new Date(req.body.createdAt) } }
+      );
+      app.createdAt = new Date(req.body.createdAt);
+    }
+
     res.status(201).json(app);
   } catch (err) {
     res.status(400).json({ error: err.message });
+  }
+});
+
+// PATCH batch reorder — accepts [{ _id, order }]
+router.patch('/batch/order', async (req, res) => {
+  try {
+    const updates = req.body; // array of { _id, order }
+    if (!Array.isArray(updates)) return res.status(400).json({ error: 'Expected array' });
+    const ops = updates.map(u => ({
+      updateOne: {
+        filter: { _id: u._id },
+        update: { order: u.order }
+      }
+    }));
+    await Application.bulkWrite(ops);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

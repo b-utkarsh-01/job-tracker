@@ -49,7 +49,8 @@ const ApplicationSchema = new mongoose.Schema({
 
   nextFollowupDate: { type: Date, default: threeDaysFromNow },
   followedUpLast: { type: Boolean, default: null },
-  followupCount: { type: Number, default: 0 }
+  followupCount: { type: Number, default: 0 },
+  order: { type: Number, default: 0, index: true }
 }, { timestamps: true });
 
 ApplicationSchema.statics.STATUS_VALUES = STATUS_VALUES;

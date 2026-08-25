@@ -474,7 +474,7 @@ tr:last-child td{ border-bottom: none; }
   font-size: 12px; opacity: 0; pointer-events:none; transition: opacity 0.25s, transform 0.25s;
   font-weight: 600;
 }
-.toast.show{ opacity: 1; transform: translateX(-50%) translateY(-6px); }
+.toast.show{ opacity: 1; transform: translateX(-50%) translateY(-6px); pointer-events: auto; }
 .toast.success{ background: var(--teal); color: #fff; }
 .toast.error{ background: var(--coral); color: #fff; }
 
@@ -595,26 +595,57 @@ kbd{ min-width:30px; padding:4px 7px; text-align:center; border:1px solid var(--
 /* =============================================
    WEEKLY GOAL TRACKER
    ============================================= */
+.goal-header{
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;
+}
+.goal-header-left{ display: flex; align-items: center; gap: 8px; }
+.goal-header-icon{ font-size: 18px; }
+.goal-header-left h2{ margin: 0; font-size: 16px; }
+.goal-edit-btn{
+  padding: 5px 12px; border: 1px solid var(--line); border-radius: 6px;
+  background: var(--surface); color: var(--ink-soft); font-size: 11px; cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace; transition: all 0.15s;
+}
+.goal-edit-btn:hover{ border-color: var(--teal); color: var(--teal); }
 .goal-row{ display: flex; flex-direction: column; gap: 10px; }
-.goal-display{ display: flex; align-items: center; gap: 14px; }
+.goal-display{ display: flex; flex-direction: column; gap: 4px; }
+.goal-visual{ display: flex; align-items: center; gap: 18px; }
+.goal-ring-wrap{
+  position: relative; width: 64px; height: 64px; flex-shrink: 0;
+}
+.goal-ring{ width: 100%; height: 100%; transform: rotate(-90deg); }
+.goal-ring-bg{ stroke: var(--line); }
+.goal-ring-fill{ stroke: var(--teal); stroke-linecap: round; transition: stroke-dasharray 0.6s ease; }
+.goal-ring-fill.goal-complete{ stroke: var(--teal); }
+.goal-ring-text{
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+}
+.goal-pct{
+  font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700; color: var(--ink);
+}
+.goal-details{ flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.goal-count{ font-size: 13px; color: var(--ink-soft); }
+.goal-count strong{ color: var(--ink); font-family: 'Space Grotesk', sans-serif; font-size: 18px; }
+.goal-label{ font-size: 11px; color: var(--ink-soft); margin-top: -3px; }
 .goal-bar-wrap{
-  flex: 1; height: 22px; background: var(--line); border-radius: 999px; overflow: hidden;
-  position: relative;
+  height: 6px; background: var(--line); border-radius: 999px; overflow: hidden;
+  position: relative; width: 100%;
 }
 .goal-bar{
   height: 100%; border-radius: 999px; transition: width 0.5s ease;
-  background: var(--teal);
+  background: linear-gradient(90deg, var(--teal), #14A085);
 }
-.goal-bar.goal-complete{ background: var(--teal); }
-.goal-bar.goal-behind{ background: var(--amber); }
-.goal-text{ font-size: 12.5px; color: var(--ink-soft); white-space: nowrap; min-width: 80px; text-align: right; }
-.goal-text strong{ color: var(--ink); font-family: 'Space Grotesk', sans-serif; }
+.goal-bar.goal-complete{
+  background: linear-gradient(90deg, var(--teal), #14A085);
+}
+.goal-bar.goal-behind{ background: linear-gradient(90deg, var(--amber), #D4942A); }
 .goal-input-group{ display: flex; gap: 8px; align-items: flex-end; }
-.goal-input-group label{ margin-bottom: 0; }
-.goal-input-group input{ width: 100px; }
+.goal-input-group label{ margin-bottom: 0; font-size: 12px; color: var(--ink-soft); }
+.goal-input-group input{ width: 100px; padding: 7px 10px; border-radius: 6px; font-size: 13px; }
 .goal-save-btn{
   padding: 9px 14px; border: none; border-radius: 7px; background: var(--teal); color: #fff;
   font-family: 'IBM Plex Mono', monospace; font-size: 12px; cursor: pointer; white-space: nowrap;
+  font-weight: 600;
 }
 .goal-save-btn:hover{ opacity: 0.9; }
 
@@ -633,6 +664,8 @@ kbd{ min-width:30px; padding:4px 7px; text-align:center; border:1px solid var(--
   font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; font-weight: 600; cursor: pointer;
 }
 .bulk-action-btn:hover{ opacity: 0.9; }
+.bulk-delete-btn{ background: var(--coral); }
+.bulk-delete-btn:hover{ opacity: 0.88; }
 .bulk-cancel-btn{
   background: none; border: none; color: var(--ink-soft); font-size: 14px; cursor: pointer; padding: 4px;
 }
@@ -715,10 +748,50 @@ th.sort-desc::after{ content: '↓'; opacity: 0.9; color: var(--teal); }
    ============================================= */
 .snooze-btn{
   background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber);
-  border-radius: 5px; padding: 3px 8px; font-size: 10px; cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace; margin-left: 6px;
+  border-radius: 6px; padding: 4px 10px; font-size: 11px; cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace; margin-left: 6px; font-weight: 600;
+  display: inline-flex; align-items: center; gap: 4px; transition: all 0.15s;
 }
-.snooze-btn:hover{ background: var(--amber); color: #fff; }
+.snooze-btn:hover{ background: var(--amber); color: #fff; transform: translateY(-1px); }
+
+/* SNOOZE MODAL */
+.snooze-card{ width: min(360px, calc(100vw - 32px)); text-align: center; }
+.snooze-modal-head{ margin-bottom: 20px; }
+.snooze-modal-icon{ font-size: 32px; display: block; margin-bottom: 8px; }
+.snooze-modal-title{
+  font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 700;
+  color: var(--ink); margin-bottom: 4px;
+}
+.snooze-modal-subtitle{ font-size: 12.5px; color: var(--ink-soft); }
+.snooze-durations{
+  display: flex; gap: 8px; justify-content: center; margin-bottom: 22px;
+}
+.snooze-option{
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 12px 16px; border: 2px solid var(--line); border-radius: 10px;
+  background: var(--surface); cursor: pointer; transition: all 0.15s; min-width: 60px;
+}
+.snooze-option:hover{ border-color: var(--amber); background: var(--amber-soft); }
+.snooze-option-selected{ border-color: var(--amber); background: var(--amber-soft); }
+.snooze-option-days{
+  font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700; color: var(--ink);
+}
+.snooze-option-selected .snooze-option-days{ color: var(--amber); }
+.snooze-option-label{ font-size: 10.5px; color: var(--ink-soft); text-transform: lowercase; }
+.snooze-custom-input-row{
+  display: flex; align-items: center; gap: 6px; justify-content: center;
+  margin-top: 8px;
+}
+.snooze-custom-input{
+  width: 70px; padding: 7px 10px; border: 2px solid var(--teal); border-radius: 8px;
+  font-size: 14px; font-weight: 700; text-align: center;
+  font-family: 'IBM Plex Mono', monospace; background: var(--surface); color: var(--ink);
+}
+.snooze-custom-input:focus{ outline: 2px solid var(--teal); outline-offset: 0; }
+.snooze-custom-unit{ font-size: 12px; color: var(--ink-soft); font-weight: 600; }
+.snooze-actions{ display: flex; gap: 10px; }
+.snooze-confirm{ background: var(--amber); color: #fff; border-color: var(--amber); }
+.snooze-confirm:hover{ opacity: 0.88; }
 
 /* =============================================
    UNDO TOAST

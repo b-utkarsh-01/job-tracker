@@ -52,10 +52,12 @@
   <div class="stats" id="stats"></div>
 
   <div class="panel" id="weeklyGoalPanel">
-    <h2>
-      Weekly Goal
-      <button id="editGoalBtn" type="button">Edit</button>
-    </h2>
+    <div class="goal-header">
+      <div class="goal-header-left">
+        <h2>Weekly Goal</h2>
+      </div>
+      <button id="editGoalBtn" type="button" class="goal-edit-btn">Edit</button>
+    </div>
     <div class="goal-row">
       <div class="goal-input-group hidden" id="goalInputGroup">
         <label>Target applications this week</label>
@@ -63,10 +65,24 @@
         <button id="saveGoalBtn" type="button" class="goal-save-btn">Save</button>
       </div>
       <div class="goal-display" id="goalDisplay">
-        <div class="goal-bar-wrap">
-          <div class="goal-bar" id="goalBar"></div>
+        <div class="goal-visual">
+          <div class="goal-ring-wrap" id="goalRingWrap">
+            <svg class="goal-ring" viewBox="0 0 36 36">
+              <path class="goal-ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3"/>
+              <path class="goal-ring-fill" id="goalRingFill" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3" stroke-dasharray="0, 100"/>
+            </svg>
+            <div class="goal-ring-text">
+              <span class="goal-pct" id="goalPct">0%</span>
+            </div>
+          </div>
+          <div class="goal-details">
+            <div class="goal-count" id="goalCount"><strong>0</strong> / 5</div>
+            <div class="goal-label">applied this week</div>
+            <div class="goal-bar-wrap">
+              <div class="goal-bar" id="goalBar"></div>
+            </div>
+          </div>
         </div>
-        <div class="goal-text" id="goalText"></div>
       </div>
     </div>
   </div>
@@ -204,6 +220,7 @@
         <option>Ghosted</option>
       </select>
       <button id="bulkApplyBtn" type="button" class="bulk-action-btn">Apply</button>
+      <button id="bulkDeleteBtn" type="button" class="bulk-action-btn bulk-delete-btn">🗑 Delete</button>
       <button id="bulkCancelBtn" type="button" class="bulk-cancel-btn">✕</button>
     </div>
     <input id="searchBox" class="search-box" placeholder="Search company, role, or notes...">
@@ -320,6 +337,46 @@
     <div class="confirm-actions">
       <button id="confirmCancel" type="button" class="confirm-btn confirm-cancel">Cancel</button>
       <button id="confirmYes" type="button" class="confirm-btn confirm-danger">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div id="snoozeModal" class="shortcut-help hidden">
+  <div class="shortcut-card snooze-card">
+    <div class="snooze-modal-head">
+      <span class="snooze-modal-icon">😴</span>
+      <div class="snooze-modal-title">Snooze Follow-up</div>
+      <div class="snooze-modal-subtitle">Choose when to be reminded</div>
+    </div>
+    <div class="snooze-durations" id="snoozeDurations">
+      <button class="snooze-option" data-days="1">
+        <span class="snooze-option-days">1</span>
+        <span class="snooze-option-label">day</span>
+      </button>
+      <button class="snooze-option snooze-option-selected" data-days="3">
+        <span class="snooze-option-days">3</span>
+        <span class="snooze-option-label">days</span>
+      </button>
+      <button class="snooze-option" data-days="7">
+        <span class="snooze-option-days">7</span>
+        <span class="snooze-option-label">days</span>
+      </button>
+      <button class="snooze-option" data-days="14">
+        <span class="snooze-option-days">14</span>
+        <span class="snooze-option-label">days</span>
+      </button>
+      <button class="snooze-option snooze-custom-btn" data-days="custom">
+        <span class="snooze-option-days">✎</span>
+        <span class="snooze-option-label">custom</span>
+      </button>
+    </div>
+    <div class="snooze-custom-input-row hidden" id="snoozeCustomRow">
+      <input id="snoozeCustomDays" type="number" min="1" max="365" value="30" class="snooze-custom-input">
+      <span class="snooze-custom-unit">days</span>
+    </div>
+    <div class="snooze-actions">
+      <button id="snoozeCancelBtn" type="button" class="confirm-btn confirm-cancel">Cancel</button>
+      <button id="snoozeConfirmBtn" type="button" class="confirm-btn snooze-confirm">Snooze</button>
     </div>
   </div>
 </div>

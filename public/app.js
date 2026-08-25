@@ -564,6 +564,12 @@ document.addEventListener(
 
       if(pendingConfirmResolver) pendingConfirmResolver(false);
 
+      // Close snooze modal
+      const snoozeModal = document.getElementById('snoozeModal');
+      if(snoozeModal && !snoozeModal.classList.contains('hidden')){
+        snoozeModal.classList.add('hidden');
+      }
+
       return;
     }
 
@@ -673,6 +679,18 @@ document
       ){
 
         closeShortcutHelp();
+      }
+    }
+  );
+
+// Click outside snooze modal to close
+document
+  .getElementById('snoozeModal')
+  ?.addEventListener(
+    'click',
+    (e)=>{
+      if(e.target.id === 'snoozeModal'){
+        e.target.classList.add('hidden');
       }
     }
   );
@@ -804,6 +822,8 @@ function linkify(text){
 // TOAST
 // ============================================================
 
+let toastTimer = null;
+
 function showToast(
   msg,
   type = 'success'
@@ -817,7 +837,8 @@ function showToast(
   t.className =
     'toast show ' + type;
 
-  setTimeout(()=>{
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{
     t.classList.remove('show');
   }, 1800);
 }
@@ -828,6 +849,9 @@ function showUndoToast(msg, onUndo, durationMs = 5000){
 
   const t =
     document.getElementById('toast');
+
+  // Clear any pending regular toast timer so it doesn't hide this undo toast
+  clearTimeout(toastTimer);
 
   t.textContent = msg;
   t.className = 'toast show undo-toast';
@@ -895,6 +919,99 @@ function askConfirm(message, opts = {}){
     yesBtn.onclick = () => cleanup(true);
     cancelBtn.onclick = () => cleanup(false);
   });
+}
+
+
+// ============================================================
+// SNOOZE MODAL
+// ============================================================
+
+function showSnoozeModal(appId){
+  const modal = document.getElementById('snoozeModal');
+  if(!modal) return;
+
+  let selectedDays = 3;
+  const options = modal.querySelectorAll('.snooze-option');
+  const confirmBtn = document.getElementById('snoozeConfirmBtn');
+  const cancelBtn = document.getElementById('snoozeCancelBtn');
+  const customRow = document.getElementById('snoozeCustomRow');
+  const customInput = document.getElementById('snoozeCustomDays');
+
+  // Reset selection to 3 days
+  options.forEach(opt => {
+    const isCustom = opt.dataset.days === 'custom';
+    opt.classList.toggle('snooze-option-selected', !isCustom && parseInt(opt.dataset.days) === 3);
+    opt.onclick = () => {
+      options.forEach(o => o.classList.remove('snooze-option-selected'));
+      opt.classList.add('snooze-option-selected');
+      if(isCustom){
+        customRow.classList.remove('hidden');
+        selectedDays = parseInt(customInput.value) || 30;
+        customInput.focus();
+      } else {
+        customRow.classList.add('hidden');
+        selectedDays = parseInt(opt.dataset.days);
+      }
+    };
+  });
+
+  // Hide custom input by default
+  if(customRow) customRow.classList.add('hidden');
+
+  // Update selectedDays when custom input changes
+  if(customInput){
+    customInput.oninput = () => {
+      selectedDays = parseInt(customInput.value) || 30;
+    };
+  }
+
+  modal.classList.remove('hidden');
+
+  const cleanup = async (confirmed) => {
+    modal.classList.add('hidden');
+    confirmBtn.onclick = null;
+    cancelBtn.onclick = null;
+    if(!confirmed) return;
+
+    await fetch(`${API}/${appId}/followup`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answered: false, days: selectedDays })
+    });
+    const label = selectedDays === 1 ? '1 day' : selectedDays + ' days';
+    showToast(`Snoozed for ${label}`, 'success');
+    await loadApps();
+    await loadStats();
+  };
+
+  confirmBtn.onclick = () => cleanup(true);
+  cancelBtn.onclick = () => cleanup(false);
+}
+
+
+// ============================================================
+// ORDER NORMALIZATION
+// ============================================================
+
+// Assign sequential 0,1,2... order to all apps based on their
+// current position. For initial assignment (when all have order=0),
+// sorts by createdAt descending so newest appears first.
+async function normalizeOrder(){
+  if(apps.length <= 1) return;
+  // Create a copy sorted by position: use server sort first,
+  // but for apps with same order, break ties by createdAt desc
+  const sorted = [...apps].sort((a, b) => {
+    if(a.order !== b.order) return a.order - b.order;
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
+  sorted.forEach((a, i) => { a.order = i; });
+  await fetch(API + '/batch/order', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(sorted.map(a => ({ _id: a._id, order: a.order })))
+  });
+  // Re-sort the live apps array so render() sees correct order
+  apps.sort((a, b) => a.order - b.order);
 }
 
 
@@ -976,9 +1093,11 @@ function renderStatsSkeleton(){
 
 function renderWeeklyGoal(){
   const goalBar = document.getElementById('goalBar');
-  const goalText = document.getElementById('goalText');
   const goalInput = document.getElementById('goalInput');
-  if(!goalBar || !goalText) return;
+  const goalCount = document.getElementById('goalCount');
+  const goalPct = document.getElementById('goalPct');
+  const goalRingFill = document.getElementById('goalRingFill');
+  if(!goalBar) return;
 
   const now = new Date();
   const dayOfWeek = now.getDay();
@@ -993,9 +1112,20 @@ function renderWeeklyGoal(){
   }).length;
 
   const pct = weeklyGoal > 0 ? Math.min(100, Math.round((thisWeekCount / weeklyGoal) * 100)) : 0;
+
+  // Update circular ring
+  if(goalRingFill) goalRingFill.style.strokeDasharray = pct + ', 100';
+
+  // Update progress bar
   goalBar.style.width = pct + '%';
-  goalBar.className = 'goal-bar' + (pct >= 100 ? ' goal-complete' : '');
-  goalText.innerHTML = `<strong>${thisWeekCount}</strong> / ${weeklyGoal} applied this week`;
+  goalBar.className = 'goal-bar' + (pct >= 100 ? ' goal-complete' : (pct < 50 ? ' goal-behind' : ''));
+
+  // Update count text
+  if(goalCount) goalCount.innerHTML = `<strong>${thisWeekCount}</strong> / ${weeklyGoal}`;
+
+  // Update percentage
+  if(goalPct) goalPct.textContent = pct + '%';
+
   if(goalInput) goalInput.value = weeklyGoal;
 }
 
@@ -2706,7 +2836,6 @@ function renderTable(){
             }
           );
 
-          showToast('Deleted', 'success');
           await loadApps();
           await loadStats();
 
@@ -2723,7 +2852,8 @@ function renderTable(){
                   company: d.company, role: d.role, source: d.source,
                   dateApplied: d.dateApplied, notes: d.notes,
                   portalLink: d.portalLink, status: d.status,
-                  priority: d.priority, eventDate: d.eventDate, eventLabel: d.eventLabel
+                  priority: d.priority, eventDate: d.eventDate, eventLabel: d.eventLabel,
+                  createdAt: d.createdAt
                 })
               });
               pendingUndo = null;
@@ -2791,22 +2921,15 @@ function renderTable(){
 
 
   // ==========================================================
-  // SNOOZE FOLLOW-UP (3 days by default)
+  // SNOOZE FOLLOW-UP (with confirmation modal)
   // ==========================================================
 
   wrap
     .querySelectorAll('[data-snooze]')
     .forEach(btn => {
-      btn.onclick = async ()=>{
+      btn.onclick = ()=>{
         const id = btn.dataset.snooze;
-        await fetch(`${API}/${id}/followup`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ answered: false, days: 3 })
-        });
-        showToast('Snoozed 3 days', 'success');
-        await loadApps();
-        await loadStats();
+        showSnoozeModal(id);
       };
     });
 
@@ -2889,6 +3012,63 @@ document.getElementById('bulkCancelBtn')?.addEventListener('click', ()=>{
   bulkSelectedIds = [];
   updateBulkBar();
   render();
+});
+
+document.getElementById('bulkDeleteBtn')?.addEventListener('click', async ()=>{
+  if(!bulkSelectedIds.length){
+    showToast('No applications selected', 'error');
+    return;
+  }
+  const count = bulkSelectedIds.length;
+  const confirmed = await askConfirm(
+    `Delete ${count} application${count > 1 ? 's' : ''}?`,
+    { confirmText: 'Delete', confirmClass: 'confirm-danger' }
+  );
+  if(!confirmed) return;
+
+  // Save a copy for undo
+  const deletedApps = bulkSelectedIds
+    .map(id => apps.find(a => a._id === id))
+    .filter(Boolean);
+
+  for(const id of bulkSelectedIds){
+    await fetch(`${API}/${id}`, { method: 'DELETE' });
+  }
+
+  const deletedIds = [...bulkSelectedIds];
+  bulkSelectedIds = [];
+  updateBulkBar();
+  await loadApps();
+  await loadStats();
+
+  // Show undo toast for 5 seconds
+  if(deletedApps.length){
+    pendingUndo = { items: deletedApps, ids: deletedIds };
+    showUndoToast(
+      `Deleted ${count} application${count > 1 ? 's' : ''}`,
+      async ()=>{
+        if(!pendingUndo) return;
+        const items = pendingUndo.items;
+        for(const d of items){
+          await fetch(API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              company: d.company, role: d.role, source: d.source,
+              dateApplied: d.dateApplied, notes: d.notes,
+              portalLink: d.portalLink, status: d.status,
+              priority: d.priority, eventDate: d.eventDate, eventLabel: d.eventLabel,
+              createdAt: d.createdAt
+            })
+          });
+        }
+        pendingUndo = null;
+        showToast(`Restored ${items.length} application${items.length > 1 ? 's' : ''}`, 'success');
+        await loadApps();
+        await loadStats();
+      }
+    );
+  }
 });
 
 
