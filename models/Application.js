@@ -24,6 +24,64 @@ const SOURCE_VALUES = [
   'Other'
 ];
 
+// ---------------- Job-site link buckets (S/A/B/C) ----------------
+// Pre-ranked list: higher tiers tend to get replies / interviews faster for
+// freshers and early-career candidates in India. Users can add their own links
+// under any section.
+
+const SITE_SECTIONS = [
+  {
+    tier: 'S',
+    label: 'S · Best reply rate',
+    description: 'Usually fastest replies for freshers (startups, referrals, direct hiring).',
+    defaultLinks: [
+      { name: 'LinkedIn', url: 'https://www.linkedin.com/jobs/', icon: 'linkedin' },
+      { name: 'Wellfound', url: 'https://wellfound.com/jobs/', icon: 'wellfound' },
+      { name: 'Cutshort', url: 'https://cutshort.io/', icon: 'cutshort' },
+      { name: 'Instahyre', url: 'https://instahyre.com/', icon: 'instahyre' }
+    ]
+  },
+  {
+    tier: 'A',
+    label: 'A · Strong',
+    description: 'High volume and still good chances — IT services, mid-market, freshers.',
+    defaultLinks: [
+      { name: 'Naukri', url: 'https://www.naukri.com/', icon: 'naukri' },
+      { name: 'Foundit', url: 'https://www.foundit.in/', icon: 'foundit' },
+      { name: 'Indeed India', url: 'https://in.indeed.com/', icon: 'indeed' }
+    ]
+  },
+  {
+    tier: 'B',
+    label: 'B · Fresher / niche',
+    description: 'Good for internships, campus hires, and tech-specific roles.',
+    defaultLinks: [
+      { name: 'Internshala', url: 'https://internshala.com/', icon: 'internshala' },
+      { name: 'Hirist', url: 'https://www.hirist.com/', icon: 'hirist' },
+      { name: 'Apna', url: 'https://www.apna.co/', icon: 'apna' }
+    ]
+  },
+  {
+    tier: 'C',
+    label: 'C · Also try',
+    description: 'Worth bookmarking if the role/company shows up there.',
+    defaultLinks: [
+      { name: 'Glassdoor', url: 'https://www.glassdoor.co.in/', icon: 'glassdoor' },
+      { name: 'Shine', url: 'https://www.shine.com/', icon: 'shine' },
+      { name: 'HiringCafe', url: 'https://www.hiringcafe.com/', icon: 'hiringcafe' }
+    ]
+  }
+];
+
+// Icon keys we have inline SVGs for. Anything else falls back to a plain
+// generic bookmark icon so the sidebar still looks clean.
+const KNOWN_ICONS = new Set([
+  'linkedin', 'wellfound', 'cutshort', 'instahyre',
+  'naukri', 'foundit', 'indeed',
+  'internshala', 'hirist', 'apna',
+  'glassdoor', 'shine', 'hiringcafe'
+]);
+
 function threeDaysFromNow() {
   const d = new Date();
   d.setDate(d.getDate() + 3);
@@ -54,6 +112,8 @@ const ApplicationSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 ApplicationSchema.statics.STATUS_VALUES = STATUS_VALUES;
+ApplicationSchema.statics.SITE_SECTIONS = SITE_SECTIONS;
+ApplicationSchema.statics.KNOWN_ICONS = KNOWN_ICONS;
 ApplicationSchema.statics.SOURCE_VALUES = SOURCE_VALUES;
 
 module.exports = mongoose.model('Application', ApplicationSchema);

@@ -80,7 +80,6 @@ body{
 .notification-panel .notification-company{ font-family:'Space Grotesk',sans-serif; font-size:12.5px; font-weight:600; }
 .notification-panel .notification-role{ color:var(--ink-soft); font-size:10.5px; margin-top:2px; }
 .notification-panel .notification-actions{ margin-top:10px; display:flex; gap:6px; }
-/* .notification-panel button{ border:1px solid var(--line); background:var(--surface); color:var(--ink); border-radius:7px; padding:6px 8px; cursor:pointer; font:10.5px 'IBM Plex Mono',monospace; } */
 .notification-panel button{
   border:1px solid var(--line);
   background:var(--surface);
@@ -94,7 +93,6 @@ body{
     color 0.18s ease,
     border-color 0.18s ease;
 }
-/* .notification-panel button:hover{ background:var(--slate-soft); } */
 .notification-panel button:hover{
   background:var(--slate-soft);
   color:var(--ink);
@@ -103,8 +101,6 @@ body{
 /* =========================================
    Enable reminders — LIGHT THEME
    ========================================= */
-
-/* .notification-panel .enable-btn{ background:var(--teal); color:#fff; border-color:var(--teal); } */
 .notification-panel .enable-btn{
   background:var(--teal);
   color:#fff;
@@ -369,13 +365,29 @@ tr:last-child td{ border-bottom: none; }
 .radio-row{ display:flex; gap: 10px; align-items:center; font-size: 11px; }
 .radio-row label{ display:flex; align-items:center; gap:4px; text-transform:none; color: var(--ink); font-size: 11px; margin:0; }
 
-.notes{ color: var(--ink-soft); font-size: 11.5px; max-width: 200px; word-break: break-word; overflow-wrap: anywhere; cursor: text; }
+.notes{ color: var(--ink-soft); font-size: 11.5px; max-width: 200px; max-height: 72px; overflow: hidden; word-break: break-word; overflow-wrap: anywhere; cursor: pointer; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; line-height: 1.4; }
 .notes a{ color: var(--teal); text-decoration: none; font-weight: 600; }
 .notes a:hover{ text-decoration: underline; }
+.notes:hover{ background: var(--slate-soft); border-radius: 4px; }
 .notes textarea{ min-height: 50px; font-size: 11px; }
 .row-actions{ display:flex; gap: 4px; white-space: nowrap; }
-.row-actions button{ border: none; background: none; cursor: pointer; font-size: 13px; color: var(--ink-soft); padding: 2px 4px; }
-.row-actions button:hover{ color: var(--ink); }
+.row-actions button{ border: none; background: none; cursor: pointer; font-size: 13px; padding: 2px 4px; color: var(--ink-soft); border-radius: 4px; transition: background 0.12s, color 0.12s; }
+.selectdelete{
+  display: flex;
+  flex-direction: column;
+  background-color: purple;
+}
+.delete-job{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--coral);
+  border:none;
+  background: none;
+}
+.delete-job svg{ width: 20px; height: 23px; margin: 0; padding: 0; border: none; }
+.delete-job:hover{ background-color: var(--coral);  color: white; border-radius: 6px; }
+.delete-job:hover svg{ color: var(--line); }
 
 .search-box{
   width: 100%; font-family: 'IBM Plex Mono', monospace; font-size: 13px;
@@ -386,6 +398,25 @@ tr:last-child td{ border-bottom: none; }
 
 .empty{ text-align:center; padding: 40px 20px; color: var(--ink-soft); font-size: 13px; }
 .status-select{ padding: 4px 6px; font-size: 11px; border-radius: 6px; }
+
+/* Fix for select_delete container - align delete button and checkbox properly */
+.select_delete{
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  margin: 0;
+}
+.select_delete td,
+.select_delete th{
+  padding: 6px 8px;
+  vertical-align: middle;
+}
+.select_delete .delete-job{
+  display: flex;
+  align-items: center;
+  justify-content: baseline;
+}
 
 .charts{ display:grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .chart-box{
@@ -402,7 +433,6 @@ tr:last-child td{ border-bottom: none; }
 .response-row{ display:flex; justify-content:space-between; font-size: 11px; padding: 4px 0; border-bottom: 1px solid var(--line); }
 .response-row:last-child{ border-bottom: none; }
 .response-row .rc{ color: var(--ink-soft); }
-.response-row .rd{ font-weight: 600; }
 
 .cal-nav{ display:flex; align-items:center; gap:8px; font-size: 12px; }
 .cal-nav button{ font-family: 'IBM Plex Mono', monospace; font-size: 12px; background: none; border: 1px solid var(--line); border-radius: 6px; width:26px; height:26px; cursor: pointer; color: var(--ink-soft); }
@@ -479,6 +509,16 @@ tr:last-child td{ border-bottom: none; }
 .toast.error{ background: var(--coral); color: #fff; }
 
 .shortcut-help{ position:fixed; inset:0; z-index:100; background:rgba(0,0,0,.32); display:flex; align-items:center; justify-content:center; padding:16px; overflow-y: auto; }
+
+/* ---- Notes Modal with backdrop blur ---- */
+.shortcut-help.notes-modal-open{ background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+
+.notes-modal-card{ width: min(520px, 95%); max-height: 80vh; display: flex; flex-direction: column; }
+.notes-modal-head{ display:flex; align-items:center; justify-content:center; font-family:'Space Grotesk',sans-serif; margin-bottom:12px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.notes-modal-body{ flex: 1; overflow-y: auto; min-height: 120px; max-height: 50vh; }
+.notes-modal-body textarea{ width:100%; min-height: 140px; max-height: 300px; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font-family: 'IBM Plex Mono', monospace; font-size: 13px; resize: vertical; outline: none; line-height: 1.5; }
+.notes-modal-body textarea:focus{ border-color: var(--teal); box-shadow: 0 0 0 3px rgba(15, 107, 92, 0.15); }
+.notes-modal-foot{ display:flex; gap: 10px; justify-content: flex-end; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
 .shortcut-card{ width:min(390px,100%); background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px; box-shadow:0 18px 50px rgba(0,0,0,.2); box-sizing:border-box; }
 .shortcut-head{ display:flex; align-items:center; justify-content:space-between; font-family:'Space Grotesk',sans-serif; margin-bottom:12px; }
 .shortcut-head button{ border:0; background:none; color:var(--ink-soft); cursor:pointer; font-size:14px; }
@@ -569,7 +609,7 @@ kbd{ min-width:30px; padding:4px 7px; text-align:center; border:1px solid var(--
   .fab{ display: flex; }
 
   /* Bulk checkbox mobile */
-  th.bulk-th{ width: 36px; padding-left: 2px !important; }
+  th.bulk-th{ width: 36px; padding-left: 100px !important; }
   .bulk-check{ width: 20px; height: 20px; border-radius: 6px; }
   .bulk-check:checked::after{ left: 6px; top: 2px; width: 5px; height: 11px; border-width: 0 2.5px 2.5px 0; }
   tbody td:first-child{ padding-right: 0; }
@@ -693,7 +733,8 @@ kbd{ min-width:30px; padding:4px 7px; text-align:center; border:1px solid var(--
   transform: rotate(45deg);
 }
 .bulk-check:focus-visible{ outline: 2px solid var(--teal); outline-offset: 2px; }
-th.bulk-th{ width: 40px; text-align: center; padding-left: 4px !important; }
+th.bulk-th{ width: 40px; text-align:end;
+padding-right: 12px;}
 th.bulk-th .bulk-check{ margin: 0 auto; }
 
 /* Selected row highlight */
@@ -979,3 +1020,257 @@ body.dark .status-ghosted{ background: #3B1F5E; color: #C084FC; }
   100% { transform: translateY(100vh) rotate(720deg) scale(0.3); opacity: 0; }
 }
 
+/* ============================================================
+   JOB-LINKS SIDEBAR
+   ============================================================ */
+
+/* Page content ko sidebar ke neeche chhupne se bachao */
+body{
+  padding-left: 96px;
+  transition: padding-left 0.22s ease, background 0.2s, color 0.2s;
+}
+body:has(.job-links-sidebar.sidebar-expanded){ padding-left: 276px; }
+
+.job-links-sidebar{
+  position: fixed; top: 0; left: 0; bottom: 0; z-index: 40;
+  width: 80px;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  overflow: hidden;
+  transition: width 0.22s ease;
+}
+.job-links-sidebar.sidebar-expanded{
+  width: 260px;
+  box-shadow: 4px 0 20px rgba(0,0,0,.08);
+}
+
+/* Collapsed: toggle -> heading -> icons (ek column) */
+.sidebar-rail{
+  height: 100%;
+  display: grid;
+  gap: 10px 8px;
+  padding: 12px 8px;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-areas: "toggle" "brand" "links";
+}
+/* Expanded: heading left, toggle right, links neeche */
+.job-links-sidebar.sidebar-expanded .sidebar-rail{
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas: "brand toggle" "links links";
+}
+
+/* ---- Toggle button ---- */
+.sidebar-toggle{
+  grid-area: toggle;
+  justify-self: center;
+  width: 36px; height: 36px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg); color: var(--ink-soft);
+  border: 1px solid var(--line); border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.sidebar-toggle:hover{
+  background: var(--teal-soft); color: var(--teal); border-color: var(--teal);
+}
+.sidebar-toggle:focus-visible{ outline: 2px solid var(--teal); outline-offset: 2px; }
+.sidebar-toggle .chevron{ transition: transform 0.22s ease; }
+.job-links-sidebar.sidebar-collapsed .sidebar-toggle .chevron{ transform: rotate(180deg); }
+.job-links-sidebar.sidebar-expanded .sidebar-toggle{ justify-self: end; }
+
+/* ---- Heading ---- */
+.sidebar-brand{
+  grid-area: brand;
+  display: flex; align-items: center; justify-content: center;
+  min-width: 0;
+}
+.sidebar-brand-text{
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.02em;
+  color: var(--teal); white-space: nowrap;
+  text-transform: capitalize; /* "Job links" -> "Job Links" */
+}
+.job-links-sidebar.sidebar-expanded .sidebar-brand{
+  justify-content: flex-start; padding-left: 6px;
+}
+.job-links-sidebar.sidebar-expanded .sidebar-brand-text{ font-size: 14px; }
+
+/* ---- Links list ---- */
+.sidebar-links{
+  grid-area: links;
+  min-height: 0;
+  overflow-y: auto; overflow-x: hidden;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+  scrollbar-width: none;
+}
+.sidebar-links::-webkit-scrollbar{ display: none; }
+
+.sidebar-section{ margin-bottom: 10px; }
+.sidebar-section-head{
+  display: flex; align-items: center;
+  padding: 6px 8px 4px; overflow: hidden;
+}
+.sidebar-section-tier{ display: none; } /* label mein tier pehle se hai */
+.sidebar-section-label{
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--ink-soft);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sidebar-section-items{ display: flex; flex-direction: column; gap: 2px; }
+
+.sidebar-rail-item{
+  display: flex; align-items: center; gap: 10px;
+  min-width: 0; padding: 7px 8px;
+  border-radius: 9px;
+  color: var(--ink); text-decoration: none; cursor: pointer;
+  transition: background 0.12s ease;
+}
+.sidebar-rail-item:hover{ background: var(--slate-soft); }
+.sidebar-rail-item:focus-visible{ outline: 2px solid var(--teal); outline-offset: -2px; }
+.sidebar-rail-icon{
+  flex: 0 0 28px; width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+}
+.sidebar-favicon{
+  width: 24px; height: 24px; display: block;
+  object-fit: contain; border-radius: 6px;
+}
+.sidebar-rail-name{
+  flex: 1; min-width: 0;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 12.5px; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sidebar-remove-btn{
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  padding: 4px; border: none; border-radius: 5px;
+  background: none; color: var(--ink-soft); cursor: pointer;
+}
+.sidebar-remove-btn:hover{ color: var(--coral); background: var(--coral-soft); }
+
+/* ---- Collapsed: sirf heading + icons ---- */
+.job-links-sidebar.sidebar-collapsed .sidebar-section-head,
+.job-links-sidebar.sidebar-collapsed .sidebar-rail-name,
+.job-links-sidebar.sidebar-collapsed .sidebar-remove-btn{ display: none; }
+.job-links-sidebar.sidebar-collapsed .sidebar-rail-item{
+  justify-content: center; padding: 8px 0;
+}
+.job-links-sidebar.sidebar-collapsed .sidebar-section + .sidebar-section{
+  border-top: 1px solid var(--line); padding-top: 10px;
+}
+
+.sidebar-empty{
+  text-align: center; color: var(--ink-soft);
+  font-size: 11px; line-height: 1.5; padding: 20px 4px;
+}
+.sidebar-loading{ display: flex; justify-content: center; padding: 20px 0; }
+.sidebar-loading .spinner{ width: 22px; height: 22px; }
+
+/* ---- Link modal ---- */
+.link-modal-card{
+  width: min(420px, calc(100vw - 32px)); text-align: left;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 14px; padding: 16px;
+  box-shadow: 0 18px 50px rgba(0,0,0,.2);
+}
+.link-modal-head{
+  display: flex; align-items: center; justify-content: space-between;
+  font-family: 'Space Grotesk', sans-serif; font-size: 16px; margin-bottom: 16px;
+}
+.link-modal-head .shortcut-close{
+  border: 0; background: none; color: var(--ink-soft);
+  cursor: pointer; padding: 4px; border-radius: 6px;
+}
+.link-modal-head .shortcut-close:hover{ background: var(--slate-soft); color: var(--ink); }
+.link-modal-body{ display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+.link-modal-body label{ margin: 8px 0 0; font-weight: 600; }
+.link-modal-foot{ display: flex; gap: 10px; justify-content: flex-end; }
+
+/* ---- Mobile ---- */
+@media (max-width: 680px){
+  body,
+  body:has(.job-links-sidebar.sidebar-expanded){ padding-left: 68px; }
+  .job-links-sidebar{ width: 56px; }
+  .job-links-sidebar.sidebar-expanded{ width: 230px; }
+  .sidebar-rail{ padding: 10px 4px; }
+  .job-links-sidebar.sidebar-collapsed .sidebar-brand-text{
+    font-size: 10px; white-space: normal; text-align: center; line-height: 1.15;
+  }
+}
+
+@media print{
+  .job-links-sidebar{ display: none !important; }
+}
+
+/* ============================================================
+   JOB-LINKS SIDEBAR — add link button, icon fallback, link form
+   ============================================================ */
+
+/* Expanded: neeche "Add link" ke liye ek row */
+.job-links-sidebar.sidebar-expanded .sidebar-rail{
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas: "brand toggle" "links links" "add add";
+}
+
+.sidebar-add-chip{
+  grid-area: add;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; padding: 9px;
+  background: none; border: 1px dashed var(--line); border-radius: 10px;
+  color: var(--ink-soft);
+  font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; font-weight: 600;
+  white-space: nowrap; cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.sidebar-add-chip svg{ color: var(--teal); flex-shrink: 0; }
+.sidebar-add-chip:hover{
+  color: var(--teal); border-color: var(--teal);
+  border-style: solid; background: var(--teal-soft);
+}
+.sidebar-add-chip:focus-visible{ outline: 2px solid var(--teal); outline-offset: 2px; }
+/* Collapsed mein sirf heading + icons */
+.job-links-sidebar.sidebar-collapsed .sidebar-add-chip{ display: none; }
+
+/* Favicon na mile to naam ka pehla letter */
+.sidebar-favicon-letter{
+  width: 24px; height: 24px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--teal-soft); color: var(--teal);
+  font-family: 'Space Grotesk', sans-serif; font-size: 12px; font-weight: 700;
+}
+
+/* ---- Link form ---- */
+.link-modal-card{ width: min(440px, 100%); padding: 20px; }
+.link-modal-head{ margin-bottom: 14px; }
+
+.link-modal-preview{
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px; margin-bottom: 18px;
+  background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+}
+.link-modal-preview .sidebar-rail-icon{
+  flex: 0 0 40px; width: 40px; height: 40px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+}
+.link-preview-text{ min-width: 0; }
+.link-preview-name{
+  font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.link-preview-host{
+  margin-top: 2px; font-size: 11px; color: var(--ink-soft);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.link-modal-body{ gap: 16px; margin-bottom: 22px; }
+.link-modal-body label{ margin: 0 0 6px; }
+.link-modal-foot .confirm-btn{ flex: 0 1 auto; min-width: 110px; }
+.link-modal-foot .confirm-btn:disabled{ opacity: 0.6; cursor: not-allowed; }
+
+@media (max-width: 680px){
+  .link-modal-foot .confirm-btn{ flex: 1; }
+}

@@ -26,13 +26,26 @@ router.get('/:key', async (req, res) => {
 });
 
 // PATCH upsert a setting (create or update)
+// Only whitelisted keys are allowed to prevent arbitrary key injection.
+const ALLOWED_KEYS = ['weeklyGoal'];
 router.patch('/:key', async (req, res) => {
   try {
+    const key = req.params.key;
+    if (!ALLOWED_KEYS.includes(key)) {
+      return res.status(400).json({ error: `Unknown setting: ${key}. Allowed: ${ALLOWED_KEYS.join(', ')}` });
+    }
     const { value } = req.body;
     if (value === undefined) return res.status(400).json({ error: 'value required' });
+    // Validate value type per key
+    if (key === 'weeklyGoal') {
+      const num = Number(value);
+      if (!Number.isFinite(num) || num < 1 || num > 100) {
+        return res.status(400).json({ error: 'weeklyGoal must be a number between 1 and 100' });
+      }
+    }
 
     const doc = await Settings.findOneAndUpdate(
-      { key: req.params.key },
+      { key },
       { value },
       { new: true, upsert: true }
     );

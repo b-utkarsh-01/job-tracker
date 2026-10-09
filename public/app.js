@@ -1,4 +1,4 @@
-const STATUSES = ['Applied','Under Consideration','OA/Task Pending','Interview Scheduled','Interviewed','Offer','Rejected','No Response','Ghosted'];
+const STATUSES = ['Applied', 'Under Consideration', 'OA/Task Pending', 'Interview Scheduled', 'Interviewed', 'Offer', 'Rejected', 'No Response', 'Ghosted'];
 const API = '/api/applications';
 
 let apps = [];
@@ -34,18 +34,18 @@ let undoTimer = null;
 // ============================================================
 
 const STATUS_COLORS = {
-  'Applied':                'status-applied',
-  'Under Consideration':    'status-under-consideration',
-  'OA/Task Pending':        'status-oa',
-  'Interview Scheduled':    'status-interview-scheduled',
-  'Interviewed':            'status-interviewed',
-  'Offer':                  'status-offer',
-  'Rejected':               'status-rejected',
-  'No Response':            'status-no-response',
-  'Ghosted':                'status-ghosted'
+  'Applied': 'status-applied',
+  'Under Consideration': 'status-under-consideration',
+  'OA/Task Pending': 'status-oa',
+  'Interview Scheduled': 'status-interview-scheduled',
+  'Interviewed': 'status-interviewed',
+  'Offer': 'status-offer',
+  'Rejected': 'status-rejected',
+  'No Response': 'status-no-response',
+  'Ghosted': 'status-ghosted'
 };
 
-function statusBadge(status){
+function statusBadge(status) {
   const cls = STATUS_COLORS[status] || 'status-applied';
   return '<span class="status-badge ' + cls + '">' + esc(status) + '</span>';
 }
@@ -54,19 +54,19 @@ function statusBadge(status){
 // RISK / COLD DETECTION
 // ============================================================
 
-function getRisk(app){
-  if(['Rejected','Offer'].includes(app.status)) return null;
+function getRisk(app) {
+  if (['Rejected', 'Offer'].includes(app.status)) return null;
   const lastChange = new Date(app.updatedAt || app.createdAt);
   const now = new Date();
   const daysSince = Math.floor((now - lastChange) / (1000 * 60 * 60 * 24));
-  if(daysSince >= 10) return { level: 'hot', label: 'Going cold', days: daysSince };
-  if(daysSince >= 5) return { level: 'warm', label: daysSince + 'd stale', days: daysSince };
+  if (daysSince >= 10) return { level: 'hot', label: 'Going cold', days: daysSince };
+  if (daysSince >= 5) return { level: 'warm', label: daysSince + 'd stale', days: daysSince };
   return { level: 'cool', label: 'Active', days: daysSince };
 }
 
-function riskHtml(app){
+function riskHtml(app) {
   const r = getRisk(app);
-  if(!r) return '';
+  if (!r) return '';
   return '<span class="kanban-card-risk"><span class="risk-dot risk-' + r.level + '"></span><span class="risk-label risk-label-' + r.level + '">' + r.label + '</span></span>';
 }
 
@@ -74,11 +74,11 @@ function riskHtml(app){
 // CONFETTI
 // ============================================================
 
-function fireConfetti(){
+function fireConfetti() {
   const container = document.getElementById('confetti-container');
-  if(!container) return;
-  const colors = ['#0F6B5C','#B8791A','#C13F2B','#7C3AED','#2563EB','#059669','#F59E0B','#EC4899'];
-  for(let i = 0; i < 50; i++){
+  if (!container) return;
+  const colors = ['#0F6B5C', '#B8791A', '#C13F2B', '#7C3AED', '#2563EB', '#059669', '#F59E0B', '#EC4899'];
+  for (let i = 0; i < 50; i++) {
     const piece = document.createElement('div');
     piece.className = 'confetti-piece';
     piece.style.left = Math.random() * 100 + '%';
@@ -90,7 +90,7 @@ function fireConfetti(){
     piece.style.height = (6 + Math.random() * 8) + 'px';
     container.appendChild(piece);
   }
-  setTimeout(()=>{ container.innerHTML = ''; }, 4000);
+  setTimeout(() => { container.innerHTML = ''; }, 4000);
 }
 
 // ============================================================
@@ -105,7 +105,7 @@ const NOTIFICATION_CHECK_MS = 60 * 1000;
 // Notification localStorage helpers
 // ------------------------------------------------------------
 
-function getNotifiedFollowups(){
+function getNotifiedFollowups() {
   try {
     return JSON.parse(
       localStorage.getItem(NOTIFICATION_KEY) || '{}'
@@ -115,10 +115,17 @@ function getNotifiedFollowups(){
   }
 }
 
-function saveNotifiedFollowups(data){
+function saveNotifiedFollowups(data) {
+  // Prune old keys (older than 30 days) to prevent localStorage bloat
+  const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const pruned = {};
+  for (const [key, timestamp] of Object.entries(data)) {
+    if (now - timestamp < THIRTY_DAYS) pruned[key] = timestamp;
+  }
   localStorage.setItem(
     NOTIFICATION_KEY,
-    JSON.stringify(data)
+    JSON.stringify(pruned)
   );
 }
 
@@ -127,9 +134,9 @@ function saveNotifiedFollowups(data){
 // Get applications whose follow-up is due
 // ------------------------------------------------------------
 
-function getDueApps(){
+function getDueApps() {
   return apps.filter(a =>
-    !['Rejected','Offer'].includes(a.status) &&
+    !['Rejected', 'Offer'].includes(a.status) &&
     isOverdue(a)
   );
 }
@@ -139,12 +146,12 @@ function getDueApps(){
 // Notification bell badge
 // ------------------------------------------------------------
 
-function updateNotificationBadge(){
+function updateNotificationBadge() {
 
   const badge =
     document.getElementById('notificationBadge');
 
-  if(!badge) return;
+  if (!badge) return;
 
   const count = getDueApps().length;
 
@@ -162,12 +169,12 @@ function updateNotificationBadge(){
 // Notification panel
 // ------------------------------------------------------------
 
-function renderNotificationPanel(){
+function renderNotificationPanel() {
 
   const panel =
     document.getElementById('notificationPanel');
 
-  if(!panel) return;
+  if (!panel) return;
 
   const due = getDueApps();
 
@@ -186,7 +193,7 @@ function renderNotificationPanel(){
 
 
   // Permission information
-  if(permission === 'default'){
+  if (permission === 'default') {
 
     html += `
       <div class="panel-muted">
@@ -204,7 +211,7 @@ function renderNotificationPanel(){
       </div>
     `;
 
-  } else if(permission === 'denied'){
+  } else if (permission === 'denied') {
 
     html += `
       <div class="panel-muted">
@@ -214,7 +221,7 @@ function renderNotificationPanel(){
       </div>
     `;
 
-  } else if(permission === 'unsupported'){
+  } else if (permission === 'unsupported') {
 
     html += `
       <div class="panel-muted">
@@ -222,7 +229,7 @@ function renderNotificationPanel(){
       </div>
     `;
 
-  } else if(permission === 'granted'){
+  } else if (permission === 'granted') {
 
     html += `
       <div class="panel-muted">
@@ -233,7 +240,7 @@ function renderNotificationPanel(){
 
 
   // Show due applications
-  if(due.length){
+  if (due.length) {
 
     html += due
       .slice(0, 8)
@@ -253,7 +260,7 @@ function renderNotificationPanel(){
       .join('');
 
 
-    if(due.length > 8){
+    if (due.length > 8) {
 
       html += `
         <div class="panel-muted">
@@ -285,7 +292,7 @@ function renderNotificationPanel(){
       const company = item.dataset.jumpCompany;
       searchTerm = company.toLowerCase();
       const searchBox = document.getElementById('searchBox');
-      if(searchBox) searchBox.value = company;
+      if (searchBox) searchBox.value = company;
       filter = 'All';
       currentPage = 1;
       render();
@@ -299,16 +306,16 @@ function renderNotificationPanel(){
   const enable =
     document.getElementById('enableNotifications');
 
-  if(enable){
+  if (enable) {
 
-    enable.onclick = async ()=>{
+    enable.onclick = async () => {
 
       const result =
         await Notification.requestPermission();
 
       renderNotificationPanel();
 
-      if(result === 'granted'){
+      if (result === 'granted') {
 
         showToast(
           'Browser reminders enabled',
@@ -326,12 +333,12 @@ function renderNotificationPanel(){
 // Open notification panel
 // ------------------------------------------------------------
 
-function openNotificationPanel(){
+function openNotificationPanel() {
 
   const panel =
     document.getElementById('notificationPanel');
 
-  if(!panel) return;
+  if (!panel) return;
 
   renderNotificationPanel();
 
@@ -343,7 +350,7 @@ function openNotificationPanel(){
 // Close notification panel
 // ------------------------------------------------------------
 
-function closeNotificationPanel(){
+function closeNotificationPanel() {
 
   document
     .getElementById('notificationPanel')
@@ -357,18 +364,18 @@ function closeNotificationPanel(){
 
 function checkFollowupNotifications(
   forcePanelUpdate = false
-){
+) {
 
   updateNotificationBadge();
 
 
   // Browser doesn't support notifications
-  if(
+  if (
     !('Notification' in window) ||
     Notification.permission !== 'granted'
-  ){
+  ) {
 
-    if(forcePanelUpdate){
+    if (forcePanelUpdate) {
       renderNotificationPanel();
     }
 
@@ -399,7 +406,7 @@ function checkFollowupNotifications(
 
 
     // Already notified for this follow-up cycle
-    if(notified[key]) return;
+    if (notified[key]) return;
 
 
     // Browser notification
@@ -422,7 +429,7 @@ function checkFollowupNotifications(
       window.focus();
       searchTerm = a.company.toLowerCase();
       const searchBox = document.getElementById('searchBox');
-      if(searchBox) searchBox.value = a.company;
+      if (searchBox) searchBox.value = a.company;
       filter = 'All';
       currentPage = 1;
       render();
@@ -437,13 +444,13 @@ function checkFollowupNotifications(
   });
 
 
-  if(changed){
+  if (changed) {
 
     saveNotifiedFollowups(notified);
   }
 
 
-  if(forcePanelUpdate){
+  if (forcePanelUpdate) {
 
     renderNotificationPanel();
   }
@@ -454,12 +461,12 @@ function checkFollowupNotifications(
 // Initialize notification system
 // ------------------------------------------------------------
 
-function initNotifications(){
+function initNotifications() {
 
   const bell =
     document.getElementById('notificationBell');
 
-  if(bell){
+  if (bell) {
 
     bell.onclick =
       openNotificationPanel;
@@ -487,7 +494,7 @@ function initNotifications(){
 
 
   // Close panel when clicking outside
-  document.addEventListener('click', (e)=>{
+  document.addEventListener('click', (e) => {
 
     const wrap =
       document.querySelector('.bell-wrap');
@@ -495,11 +502,11 @@ function initNotifications(){
     const panel =
       document.getElementById('notificationPanel');
 
-    if(
+    if (
       panel &&
       wrap &&
       !wrap.contains(e.target)
-    ){
+    ) {
 
       panel.classList.add('hidden');
     }
@@ -511,9 +518,9 @@ function initNotifications(){
 // KEYBOARD SHORTCUTS
 // ============================================================
 
-function isTypingTarget(target){
+function isTypingTarget(target) {
 
-  if(!target) return false;
+  if (!target) return false;
 
   const tag =
     target.tagName?.toLowerCase();
@@ -531,7 +538,7 @@ function isTypingTarget(target){
 // Shortcut help
 // ------------------------------------------------------------
 
-function showShortcutHelp(){
+function showShortcutHelp() {
 
   document
     .getElementById('shortcutHelp')
@@ -539,7 +546,7 @@ function showShortcutHelp(){
 }
 
 
-function closeShortcutHelp(){
+function closeShortcutHelp() {
 
   document
     .getElementById('shortcutHelp')
@@ -553,20 +560,20 @@ function closeShortcutHelp(){
 
 document.addEventListener(
   'keydown',
-  (e)=>{
+  (e) => {
 
     // Escape
-    if(e.key === 'Escape'){
+    if (e.key === 'Escape') {
 
       closeShortcutHelp();
 
       closeNotificationPanel();
 
-      if(pendingConfirmResolver) pendingConfirmResolver(false);
+      if (pendingConfirmResolver) pendingConfirmResolver(false);
 
       // Close snooze modal
       const snoozeModal = document.getElementById('snoozeModal');
-      if(snoozeModal && !snoozeModal.classList.contains('hidden')){
+      if (snoozeModal && !snoozeModal.classList.contains('hidden')) {
         snoozeModal.classList.add('hidden');
       }
 
@@ -579,7 +586,7 @@ document.addEventListener(
       user is typing.
     */
 
-    if(isTypingTarget(e.target)) return;
+    if (isTypingTarget(e.target)) return;
 
 
     const key =
@@ -587,7 +594,7 @@ document.addEventListener(
 
 
     // N = New application
-    if(key === 'n'){
+    if (key === 'n') {
 
       e.preventDefault();
 
@@ -607,7 +614,7 @@ document.addEventListener(
 
 
     // / = Search
-    else if(e.key === '/'){
+    else if (e.key === '/') {
 
       e.preventDefault();
 
@@ -618,7 +625,7 @@ document.addEventListener(
 
 
     // D = Dark mode
-    else if(key === 'd'){
+    else if (key === 'd') {
 
       e.preventDefault();
 
@@ -629,7 +636,7 @@ document.addEventListener(
 
 
     // R = Refresh
-    else if(key === 'r'){
+    else if (key === 'r') {
 
       e.preventDefault();
 
@@ -638,7 +645,7 @@ document.addEventListener(
           loadApps(),
           loadStats()
         ])
-        .then(()=>{
+        .then(() => {
           showToast(
             'Refreshed',
             'success'
@@ -648,7 +655,7 @@ document.addEventListener(
 
 
     // ? = Shortcut help
-    else if(e.key === '?'){
+    else if (e.key === '?') {
 
       e.preventDefault();
 
@@ -672,11 +679,11 @@ document
   .getElementById('shortcutHelp')
   ?.addEventListener(
     'click',
-    (e)=>{
+    (e) => {
 
-      if(
+      if (
         e.target.id === 'shortcutHelp'
-      ){
+      ) {
 
         closeShortcutHelp();
       }
@@ -688,8 +695,8 @@ document
   .getElementById('snoozeModal')
   ?.addEventListener(
     'click',
-    (e)=>{
-      if(e.target.id === 'snoozeModal'){
+    (e) => {
+      if (e.target.id === 'snoozeModal') {
         e.target.classList.add('hidden');
       }
     }
@@ -704,19 +711,19 @@ initNotifications();
 // DARK MODE
 // ============================================================
 
-function initDarkMode(){
+function initDarkMode() {
 
   const saved =
     localStorage.getItem('jt-theme');
 
-  if(saved === 'dark'){
+  if (saved === 'dark') {
 
     document.body.classList.add('dark');
-  } else if(!saved){
+  } else if (!saved) {
 
     // First visit: follow OS preference
-    if(window.matchMedia &&
-       window.matchMedia('(prefers-color-scheme: dark)').matches){
+    if (window.matchMedia &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches) {
       document.body.classList.add('dark');
     }
   }
@@ -733,7 +740,7 @@ function initDarkMode(){
 
 document.getElementById(
   'darkToggle'
-).onclick = ()=>{
+).onclick = () => {
 
   document.body.classList.toggle('dark');
 
@@ -753,7 +760,7 @@ document.getElementById(
     isDark ? '☀️' : '🌙';
 
 
-  if(lastStats){
+  if (lastStats) {
 
     renderCharts(lastStats);
   }
@@ -769,7 +776,7 @@ initDarkMode();
 
 document.getElementById(
   'searchBox'
-).oninput = (e)=>{
+).oninput = (e) => {
 
   searchTerm =
     e.target.value
@@ -782,9 +789,9 @@ document.getElementById(
 };
 
 // Also check the placeholder matches our new search scope
-setTimeout(()=>{
+setTimeout(() => {
   const sb = document.getElementById('searchBox');
-  if(sb) sb.placeholder = 'Search company, role, or notes...';
+  if (sb) sb.placeholder = 'Search company, role, or notes...';
 }, 0);
 
 
@@ -792,14 +799,14 @@ setTimeout(()=>{
 // LINKIFY
 // ============================================================
 
-function linkify(text){
+function linkify(text) {
 
   const escaped =
     esc(text);
 
   return escaped.replace(
     /(https?:\/\/[^\s]+)/g,
-    (url)=>{
+    (url) => {
 
       const clean =
         url.replace(/[.,;)]+$/, '');
@@ -827,7 +834,7 @@ let toastTimer = null;
 function showToast(
   msg,
   type = 'success'
-){
+) {
 
   const t =
     document.getElementById('toast');
@@ -838,14 +845,14 @@ function showToast(
     'toast show ' + type;
 
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(()=>{
+  toastTimer = setTimeout(() => {
     t.classList.remove('show');
   }, 1800);
 }
 
 
 // Show an undo toast with a button that calls onUndo
-function showUndoToast(msg, onUndo, durationMs = 5000){
+function showUndoToast(msg, onUndo, durationMs = 5000) {
 
   const t =
     document.getElementById('toast');
@@ -858,22 +865,22 @@ function showUndoToast(msg, onUndo, durationMs = 5000){
 
   // Add undo button
   let undoBtn = t.querySelector('.undo-btn');
-  if(!undoBtn){
+  if (!undoBtn) {
     undoBtn = document.createElement('button');
     undoBtn.className = 'undo-btn';
     undoBtn.textContent = 'Undo';
     t.appendChild(undoBtn);
   }
 
-  undoBtn.onclick = ()=>{
+  undoBtn.onclick = () => {
     t.classList.remove('show');
     clearTimeout(undoTimer);
     onUndo();
   };
 
-  undoTimer = setTimeout(()=>{
+  undoTimer = setTimeout(() => {
     t.classList.remove('show');
-    if(pendingUndo) pendingUndo = null;
+    if (pendingUndo) pendingUndo = null;
   }, durationMs);
 }
 
@@ -886,20 +893,20 @@ function showUndoToast(msg, onUndo, durationMs = 5000){
 
 let pendingConfirmResolver = null;
 
-function askConfirm(message, opts = {}){
+function askConfirm(message, opts = {}) {
   return new Promise(resolve => {
     const modal = document.getElementById('confirmModal');
     const msgEl = document.getElementById('confirmMessage');
     const yesBtn = document.getElementById('confirmYes');
     const cancelBtn = document.getElementById('confirmCancel');
-    if(!modal){ resolve(true); return; }
+    if (!modal) { resolve(true); return; }
 
     msgEl.textContent = message;
     modal.classList.remove('hidden');
 
     // Dynamic button text and style
     yesBtn.textContent = opts.confirmText || 'Delete';
-    if(opts.confirmClass){
+    if (opts.confirmClass) {
       yesBtn.className = 'confirm-btn ' + opts.confirmClass;
     } else {
       yesBtn.className = 'confirm-btn confirm-danger';
@@ -926,9 +933,9 @@ function askConfirm(message, opts = {}){
 // SNOOZE MODAL
 // ============================================================
 
-function showSnoozeModal(appId){
+function showSnoozeModal(appId) {
   const modal = document.getElementById('snoozeModal');
-  if(!modal) return;
+  if (!modal) return;
 
   let selectedDays = 3;
   const options = modal.querySelectorAll('.snooze-option');
@@ -944,7 +951,7 @@ function showSnoozeModal(appId){
     opt.onclick = () => {
       options.forEach(o => o.classList.remove('snooze-option-selected'));
       opt.classList.add('snooze-option-selected');
-      if(isCustom){
+      if (isCustom) {
         customRow.classList.remove('hidden');
         selectedDays = parseInt(customInput.value) || 30;
         customInput.focus();
@@ -956,10 +963,10 @@ function showSnoozeModal(appId){
   });
 
   // Hide custom input by default
-  if(customRow) customRow.classList.add('hidden');
+  if (customRow) customRow.classList.add('hidden');
 
   // Update selectedDays when custom input changes
-  if(customInput){
+  if (customInput) {
     customInput.oninput = () => {
       selectedDays = parseInt(customInput.value) || 30;
     };
@@ -971,7 +978,7 @@ function showSnoozeModal(appId){
     modal.classList.add('hidden');
     confirmBtn.onclick = null;
     cancelBtn.onclick = null;
-    if(!confirmed) return;
+    if (!confirmed) return;
 
     await fetch(`${API}/${appId}/followup`, {
       method: 'PATCH',
@@ -996,12 +1003,12 @@ function showSnoozeModal(appId){
 // Assign sequential 0,1,2... order to all apps based on their
 // current position. For initial assignment (when all have order=0),
 // sorts by createdAt descending so newest appears first.
-async function normalizeOrder(){
-  if(apps.length <= 1) return;
+async function normalizeOrder() {
+  if (apps.length <= 1) return;
   // Create a copy sorted by position: use server sort first,
   // but for apps with same order, break ties by createdAt desc
   const sorted = [...apps].sort((a, b) => {
-    if(a.order !== b.order) return a.order - b.order;
+    if (a.order !== b.order) return a.order - b.order;
     return new Date(b.createdAt) - new Date(a.createdAt);
   });
   sorted.forEach((a, i) => { a.order = i; });
@@ -1019,13 +1026,17 @@ async function normalizeOrder(){
 // LOAD APPLICATIONS
 // ============================================================
 
-async function loadApps(){
+async function loadApps() {
 
-  const res =
-    await fetch(API);
-
-  apps =
-    await res.json();
+  try {
+    const res = await fetch(API);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    apps = await res.json();
+  } catch (err) {
+    console.error('Failed to load applications:', err);
+    showToast('Failed to load data', 'error');
+    return;
+  }
 
   render();
 
@@ -1037,7 +1048,7 @@ async function loadApps(){
 
   // Keep the calendar's "Follow-ups due" chips in sync with the latest
   // applications data (safe no-op if the calendar hasn't rendered yet).
-  if(typeof renderCalendar === 'function') renderCalendar();
+  if (typeof renderCalendar === 'function') renderCalendar();
 
   // Update weekly goal progress
   renderWeeklyGoal();
@@ -1051,20 +1062,22 @@ async function loadApps(){
 // LOAD STATS
 // ============================================================
 
-async function loadStats(){
+async function loadStats() {
 
   // Show skeleton loading first
   renderStatsSkeleton();
 
-  const res =
-    await fetch(API + '/stats');
+  try {
+    const res = await fetch(API + '/stats');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const stats = await res.json();
 
-  const stats =
-    await res.json();
+    renderStatCards(stats);
 
-  renderStatCards(stats);
-
-  renderCharts(stats);
+    renderCharts(stats);
+  } catch (err) {
+    console.error('Failed to load stats:', err);
+  }
 }
 
 
@@ -1072,10 +1085,10 @@ async function loadStats(){
 // STATS SKELETON LOADING
 // ============================================================
 
-function renderStatsSkeleton(){
+function renderStatsSkeleton() {
   const statsEl = document.getElementById('stats');
-  if(!statsEl) return;
-  if(statsEl.children.length > 0) return;
+  if (!statsEl) return;
+  if (statsEl.children.length > 0) return;
   statsEl.innerHTML = `
     <div class="stat"><div class="skeleton-num"></div><div class="skeleton-label"></div></div>
     <div class="stat"><div class="skeleton-num"></div><div class="skeleton-label"></div></div>
@@ -1091,13 +1104,13 @@ function renderStatsSkeleton(){
 // WEEKLY GOAL TRACKER
 // ============================================================
 
-function renderWeeklyGoal(){
+function renderWeeklyGoal() {
   const goalBar = document.getElementById('goalBar');
   const goalInput = document.getElementById('goalInput');
   const goalCount = document.getElementById('goalCount');
   const goalPct = document.getElementById('goalPct');
   const goalRingFill = document.getElementById('goalRingFill');
-  if(!goalBar) return;
+  if (!goalBar) return;
 
   const now = new Date();
   const dayOfWeek = now.getDay();
@@ -1114,19 +1127,19 @@ function renderWeeklyGoal(){
   const pct = weeklyGoal > 0 ? Math.min(100, Math.round((thisWeekCount / weeklyGoal) * 100)) : 0;
 
   // Update circular ring
-  if(goalRingFill) goalRingFill.style.strokeDasharray = pct + ', 100';
+  if (goalRingFill) goalRingFill.style.strokeDasharray = pct + ', 100';
 
   // Update progress bar
   goalBar.style.width = pct + '%';
   goalBar.className = 'goal-bar' + (pct >= 100 ? ' goal-complete' : (pct < 50 ? ' goal-behind' : ''));
 
   // Update count text
-  if(goalCount) goalCount.innerHTML = `<strong>${thisWeekCount}</strong> / ${weeklyGoal}`;
+  if (goalCount) goalCount.innerHTML = `<strong>${thisWeekCount}</strong> / ${weeklyGoal}`;
 
   // Update percentage
-  if(goalPct) goalPct.textContent = pct + '%';
+  if (goalPct) goalPct.textContent = pct + '%';
 
-  if(goalInput) goalInput.value = weeklyGoal;
+  if (goalInput) goalInput.value = weeklyGoal;
 }
 
 
@@ -1134,7 +1147,7 @@ function renderWeeklyGoal(){
 // STAT CARDS
 // ============================================================
 
-function renderStatCards(stats){
+function renderStatCards(stats) {
 
   const active =
     STATUSES
@@ -1247,7 +1260,7 @@ function renderStatCards(stats){
 let lastStats = null;
 
 
-function chartColors(){
+function chartColors() {
 
   const styles =
     getComputedStyle(document.body);
@@ -1272,7 +1285,7 @@ function chartColors(){
 }
 
 
-function renderCharts(stats){
+function renderCharts(stats) {
 
   lastStats = stats;
 
@@ -1283,13 +1296,13 @@ function renderCharts(stats){
   // Toggle a friendly CTA instead of drawing empty Chart.js instances.
   // The chart-box elements are hidden (not removed), so this is safe to
   // reverse the moment the first application is added.
-  if(chartsGrid && emptyState){
+  if (chartsGrid && emptyState) {
     const hasData = !!stats.total;
     emptyState.classList.toggle('hidden', hasData);
     chartsGrid.querySelectorAll('.chart-box').forEach(box => {
       box.classList.toggle('hidden', !hasData);
     });
-    if(!hasData) return;
+    if (!hasData) return;
   }
 
   const c =
@@ -1321,7 +1334,7 @@ function renderCharts(stats){
     );
 
 
-  if(charts.status){
+  if (charts.status) {
 
     charts.status.destroy();
   }
@@ -1413,7 +1426,7 @@ function renderCharts(stats){
     );
 
 
-  if(charts.source){
+  if (charts.source) {
 
     charts.source.destroy();
   }
@@ -1546,7 +1559,7 @@ function renderCharts(stats){
     );
 
 
-  if(charts.weekly){
+  if (charts.weekly) {
 
     charts.weekly.destroy();
   }
@@ -1673,7 +1686,7 @@ function renderCharts(stats){
 
   // ---- Conversion funnel: Applied -> Responded -> Interview -> Offer ----
   const funnelCtx = document.getElementById('funnelChart');
-  if(charts.funnel) charts.funnel.destroy();
+  if (charts.funnel) charts.funnel.destroy();
   const f = stats.funnel || { applied: 0, responded: 0, interview: 0, offer: 0 };
   charts.funnel = new Chart(funnelCtx, {
     type: 'bar',
@@ -1710,7 +1723,7 @@ function renderCharts(stats){
 
   // ---- Source-wise success rate: % of applications via each source that reached interview ----
   const successCtx = document.getElementById('successChart');
-  if(charts.success) charts.success.destroy();
+  if (charts.success) charts.success.destroy();
   const ss = stats.sourceSuccess || {};
   const successLabels = Object.keys(ss).filter(k => ss[k].total > 0);
   charts.success = new Chart(successCtx, {
@@ -1748,17 +1761,17 @@ function renderCharts(stats){
 }
 
 // ---- Average response time (days between applying and last status change) ----
-function renderResponseTime(stats){
+function renderResponseTime(stats) {
   const overallEl = document.getElementById('responseOverall');
   const listEl = document.getElementById('responseList');
-  if(!overallEl || !listEl) return;
+  if (!overallEl || !listEl) return;
 
   overallEl.textContent = (stats.avgResponseDays === null || stats.avgResponseDays === undefined)
     ? '—'
     : `${stats.avgResponseDays} day${stats.avgResponseDays === 1 ? '' : 's'}`;
 
   const rows = stats.responseTimeByCompany || [];
-  if(!rows.length){
+  if (!rows.length) {
     listEl.innerHTML = `<div class="panel-muted" style="font-size:10.5px;color:var(--ink-soft)">No responses tracked yet.</div>`;
     return;
   }
@@ -1780,7 +1793,7 @@ let resizeTimer;
 
 window.addEventListener(
   'resize',
-  ()=>{
+  () => {
 
     clearTimeout(
       resizeTimer
@@ -1788,8 +1801,8 @@ window.addEventListener(
 
     resizeTimer =
       setTimeout(
-        ()=>{
-          if(lastStats){
+        () => {
+          if (lastStats) {
             renderCharts(
               lastStats
             );
@@ -1801,15 +1814,15 @@ window.addEventListener(
 );
 
 
-if(
+if (
   document.fonts &&
   document.fonts.ready
-){
+) {
 
   document.fonts.ready.then(
-    ()=>{
+    () => {
 
-      if(lastStats){
+      if (lastStats) {
 
         renderCharts(
           lastStats
@@ -1824,7 +1837,7 @@ if(
 // FILTERS
 // ============================================================
 
-function renderFilters(){
+function renderFilters() {
 
   const cats = [
     'All',
@@ -1859,7 +1872,7 @@ function renderFilters(){
     )
     .forEach(b => {
 
-      b.onclick = ()=>{
+      b.onclick = () => {
 
         filter =
           b.dataset.f;
@@ -1877,12 +1890,12 @@ function renderFilters(){
 // OVERDUE CHECK
 // ============================================================
 
-function isOverdue(app){
+function isOverdue(app) {
 
-  if(
-    ['Rejected','Offer']
+  if (
+    ['Rejected', 'Offer']
       .includes(app.status)
-  ){
+  ) {
 
     return false;
   }
@@ -1900,9 +1913,9 @@ function isOverdue(app){
 // KANBAN / PIPELINE VIEW
 // ============================================================
 
-function renderKanban(){
+function renderKanban() {
   const board = document.getElementById('kanbanBoard');
-  if(!board) return;
+  if (!board) return;
 
   const kanbanStatuses = [
     'Applied', 'Under Consideration', 'OA/Task Pending',
@@ -1961,7 +1974,7 @@ function renderKanban(){
   initKanbanDragDrop();
 }
 
-function kanbanCard(a){
+function kanbanCard(a) {
   const applied = a.dateApplied
     ? new Date(a.dateApplied).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     : '';
@@ -1982,17 +1995,17 @@ function kanbanCard(a){
 
 let draggedAppId = null;
 
-function initKanbanDragDrop(){
+function initKanbanDragDrop() {
   const cards = document.querySelectorAll('.kanban-card[draggable]');
   const dropZones = document.querySelectorAll('.kanban-cards');
 
   cards.forEach(card => {
-    card.addEventListener('dragstart', (e)=>{
+    card.addEventListener('dragstart', (e) => {
       draggedAppId = card.dataset.appId;
       card.classList.add('dragging');
       e.dataTransfer.effectAllowed = 'move';
     });
-    card.addEventListener('dragend', ()=>{
+    card.addEventListener('dragend', () => {
       card.classList.remove('dragging');
       draggedAppId = null;
       document.querySelectorAll('.kanban-col').forEach(c => c.classList.remove('drag-over'));
@@ -2000,24 +2013,24 @@ function initKanbanDragDrop(){
   });
 
   dropZones.forEach(zone => {
-    zone.addEventListener('dragover', (e)=>{
+    zone.addEventListener('dragover', (e) => {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
       zone.closest('.kanban-col').classList.add('drag-over');
     });
-    zone.addEventListener('dragleave', (e)=>{
-      if(!zone.contains(e.relatedTarget)){
+    zone.addEventListener('dragleave', (e) => {
+      if (!zone.contains(e.relatedTarget)) {
         zone.closest('.kanban-col').classList.remove('drag-over');
       }
     });
-    zone.addEventListener('drop', async (e)=>{
+    zone.addEventListener('drop', async (e) => {
       e.preventDefault();
       zone.closest('.kanban-col').classList.remove('drag-over');
       const newStatus = zone.dataset.dropStatus;
-      if(!draggedAppId || !newStatus) return;
+      if (!draggedAppId || !newStatus) return;
 
       const app = apps.find(a => a._id === draggedAppId);
-      if(!app || app.status === newStatus) return;
+      if (!app || app.status === newStatus) return;
 
       await fetch(API + '/' + draggedAppId, {
         method: 'PATCH',
@@ -2026,7 +2039,7 @@ function initKanbanDragDrop(){
       });
 
       // Confetti on Offer!
-      if(newStatus === 'Offer'){
+      if (newStatus === 'Offer') {
         fireConfetti();
       }
 
@@ -2042,29 +2055,29 @@ function initKanbanDragDrop(){
 // RENDER TABLE
 // ============================================================
 
-function renderTable(){
+function renderTable() {
 
   let list =
     apps.slice();
 
 
   // Filter
-  if(filter === 'Follow-up Due'){
+  if (filter === 'Follow-up Due') {
 
     list =
       list.filter(a => isOverdue(a));
 
-  } else if(filter === 'Priority'){
+  } else if (filter === 'Priority') {
 
     list =
       list.filter(a => a.priority);
 
-  } else if(filter === 'NonPriority'){
+  } else if (filter === 'NonPriority') {
 
     list =
       list.filter(a => !a.priority);
 
-  } else if(filter !== 'All'){
+  } else if (filter !== 'All') {
 
     list =
       list.filter(
@@ -2075,7 +2088,7 @@ function renderTable(){
 
 
   // Search (includes notes)
-  if(searchTerm){
+  if (searchTerm) {
 
     list =
       list.filter(
@@ -2103,7 +2116,7 @@ function renderTable(){
   // Sort (click-to-sort by column)
   list.sort((a, b) => {
     let va, vb;
-    switch(sortCol){
+    switch (sortCol) {
       case 'company':
         va = (a.company || '').toLowerCase();
         vb = (b.company || '').toLowerCase();
@@ -2136,7 +2149,7 @@ function renderTable(){
 
 
   // Empty
-  if(total === 0){
+  if (total === 0) {
 
     wrap.innerHTML = `
       <div class="empty">
@@ -2159,10 +2172,10 @@ function renderTable(){
         )
       );
 
-    if(
+    if (
       currentPage >
       totalPages
-    ){
+    ) {
       currentPage = totalPages;
     }
 
@@ -2176,8 +2189,8 @@ function renderTable(){
   const totalPages = isPrinting ? 1 : Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   // Sort header helper
-  function sortClass(col){
-    if(sortCol !== col) return 'sortable';
+  function sortClass(col) {
+    if (sortCol !== col) return 'sortable';
     return 'sortable sort-' + sortDir;
   }
 
@@ -2199,7 +2212,7 @@ function renderTable(){
 
         <tr>
 
-          <th class="bulk-th">
+          <th class="bulk-th" colspan="2">
             <input type="checkbox" class="bulk-check" id="selectAll" title="Select all on this page"
               ${selectedIds.length === pageItems.length && pageItems.length > 0 ? 'checked' : ''}
             >
@@ -2240,46 +2253,56 @@ function renderTable(){
 
         ${pageItems.map(a => {
 
-          const applied =
-            a.dateApplied
+    const applied =
+      a.dateApplied
 
-              ? new Date(
-                  a.dateApplied
-                ).toLocaleDateString(
-                  'en-US',
-                  {
-                    month: 'short',
-                    day: 'numeric'
-                  }
-                )
+        ? new Date(
+          a.dateApplied
+        ).toLocaleDateString(
+          'en-US',
+          {
+            month: 'short',
+            day: 'numeric'
+          }
+        )
 
-              : '—';
-
-
-          const overdue =
-            isOverdue(a);
+        : '—';
 
 
-          const skip =
-            ['Rejected','Offer']
-              .includes(a.status);
-
-          const isSelected = selectedIds.includes(a._id);
+    const overdue =
+      isOverdue(a);
 
 
-          return `
+    const skip =
+      ['Rejected', 'Offer']
+        .includes(a.status);
+
+    const isSelected = selectedIds.includes(a._id);
+
+
+    return `
 
             <tr
               data-id="${a._id}"
               ${isSelected ? 'class="bulk-selected"' : ''}
             >
-
-              <td>
-                <input type="checkbox" class="bulk-check" data-bulk-id="${a._id}"
-                  ${isSelected ? 'checked' : ''}
-                >
-              </td>
-
+            <div class="select_delete">
+            <td>
+              <button data-del="${a._id}" title="Delete" class="delete-job" >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  <line x1="10" y1="11" x2="10" y2="17"></line>
+                  <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+              </button>
+            </td>
+            <td>
+              <input type="checkbox" class="bulk-check" data-bulk-id="${a._id}"
+              ${isSelected ? 'checked' : ''}
+              >
+            </td>
+            </div>
               <td
                 data-label="Company"
               >
@@ -2295,22 +2318,20 @@ function renderTable(){
                   ${esc(a.role || '')}
                 </div>
 
-                ${
-                  a.eventDate
+                ${a.eventDate
 
-                    ? `
+        ? `
                       <div class="cal-event-label">
-                        📅 ${esc(a.eventLabel || 'Event')} · ${new Date(a.eventDate).toLocaleDateString('en-US',{month:'short',day:'numeric'})}
+                        📅 ${esc(a.eventLabel || 'Event')} · ${new Date(a.eventDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </div>
                     `
 
-                    : ''
-                }
+        : ''
+      }
 
-                ${
-                  a.portalLink
+                ${a.portalLink
 
-                    ? `
+        ? `
                       <a
                         class="portal-link"
                         href="${esc(a.portalLink)}"
@@ -2321,16 +2342,15 @@ function renderTable(){
                       </a>
                     `
 
-                    : ''
-                }
+        : ''
+      }
 
-                ${
-                  (() => {
-                    const r = getRisk(a);
-                    if(!r) return '';
-                    return '<div style="margin-top:4px"><span class="risk-dot risk-' + r.level + '"></span><span class="risk-label risk-label-' + r.level + '">' + r.label + '</span></div>';
-                  })()
-                }
+                ${(() => {
+        const r = getRisk(a);
+        if (!r) return '';
+        return '<div style="margin-top:4px"><span class="risk-dot risk-' + r.level + '"></span><span class="risk-label risk-label-' + r.level + '">' + r.label + '</span></div>';
+      })()
+      }
 
               </td>
 
@@ -2353,19 +2373,18 @@ function renderTable(){
                 >
 
                   ${STATUSES.map(
-                    s =>
-                      `
+        s =>
+          `
                       <option
-                        ${
-                          s === a.status
-                            ? 'selected'
-                            : ''
-                        }
+                        ${s === a.status
+            ? 'selected'
+            : ''
+          }
                       >
                         ${s}
                       </option>
                       `
-                  ).join('')}
+      ).join('')}
 
                 </select>
 
@@ -2374,10 +2393,9 @@ function renderTable(){
 
               <td data-label="Follow-up">
 
-                ${
-                  skip
+                ${skip
 
-                    ? `
+        ? `
                       <span
                         class="followup ok"
                       >
@@ -2385,9 +2403,9 @@ function renderTable(){
                       </span>
                     `
 
-                    : overdue
+        : overdue
 
-                      ? `
+          ? `
 
                         <div
                           class="followup-prompt"
@@ -2444,29 +2462,28 @@ function renderTable(){
 
                       `
 
-                      : `
+          : `
 
                         <span
                           class="followup ok"
                         >
 
                           next check
-                          ${
-                            new Date(
-                              a.nextFollowupDate
-                            ).toLocaleDateString(
-                              'en-US',
-                              {
-                                month: 'short',
-                                day: 'numeric'
-                              }
-                            )
-                          }
+                          ${new Date(
+            a.nextFollowupDate
+          ).toLocaleDateString(
+            'en-US',
+            {
+              month: 'short',
+              day: 'numeric'
+            }
+          )
+          }
 
                         </span>
 
                       `
-                }
+      }
 
               </td>
 
@@ -2477,59 +2494,34 @@ function renderTable(){
                 data-notes-id="${a._id}"
               >
 
-                ${
-                  a.notes
+                ${a.notes
 
-                    ? linkify(a.notes)
+        ? linkify(a.notes)
 
-                    : `
+        : `
                       <span
                         style="opacity:0.5"
                       >
                         — click to add —
                       </span>
                     `
-                }
+      }
 
               </td>
-
-
-              <td
-                class="row-actions"
-              >
-
-                <button
-                  data-edit="${a._id}"
-                  title="Edit notes"
-                >
-                  ✎
-                </button>
-
-
-                <button
-                  data-del="${a._id}"
-                  title="Delete"
-                >
-                  ✕
-                </button>
-
-              </td>
-
             </tr>
 
           `;
 
-        }).join('')}
+  }).join('')}
 
       </tbody>
 
     </table>
 
 
-    ${
-      totalPages > 1
-        ? renderPagination(totalPages)
-        : ''
+    ${totalPages > 1
+      ? renderPagination(totalPages)
+      : ''
     }
 
   `;
@@ -2542,7 +2534,7 @@ function renderTable(){
   wrap.querySelectorAll('th.sortable').forEach(th => {
     th.onclick = () => {
       const col = th.dataset.sort;
-      if(sortCol === col){
+      if (sortCol === col) {
         sortDir = sortDir === 'asc' ? 'desc' : 'asc';
       } else {
         sortCol = col;
@@ -2558,14 +2550,14 @@ function renderTable(){
   // ==========================================================
 
   const selectAllEl = document.getElementById('selectAll');
-  if(selectAllEl){
-    selectAllEl.onchange = ()=>{
+  if (selectAllEl) {
+    selectAllEl.onchange = () => {
       const checked = selectAllEl.checked;
       wrap.querySelectorAll('[data-bulk-id]').forEach(cb => {
         cb.checked = checked;
         const id = cb.dataset.bulkId;
-        if(checked){
-          if(!bulkSelectedIds.includes(id)) bulkSelectedIds.push(id);
+        if (checked) {
+          if (!bulkSelectedIds.includes(id)) bulkSelectedIds.push(id);
         } else {
           bulkSelectedIds = bulkSelectedIds.filter(x => x !== id);
         }
@@ -2580,10 +2572,10 @@ function renderTable(){
   // ==========================================================
 
   wrap.querySelectorAll('[data-bulk-id]').forEach(cb => {
-    cb.onchange = ()=>{
+    cb.onchange = () => {
       const id = cb.dataset.bulkId;
-      if(cb.checked){
-        if(!bulkSelectedIds.includes(id)) bulkSelectedIds.push(id);
+      if (cb.checked) {
+        if (!bulkSelectedIds.includes(id)) bulkSelectedIds.push(id);
       } else {
         bulkSelectedIds = bulkSelectedIds.filter(x => x !== id);
       }
@@ -2603,7 +2595,7 @@ function renderTable(){
     .forEach(sel => {
 
       sel.onchange =
-        async ()=>{
+        async () => {
 
           await fetch(
             `${API}/${sel.dataset.id}`,
@@ -2630,7 +2622,7 @@ function renderTable(){
           );
 
           // Confetti on Offer!
-          if(sel.value === 'Offer') fireConfetti();
+          if (sel.value === 'Offer') fireConfetti();
 
 
           await loadApps();
@@ -2651,7 +2643,7 @@ function renderTable(){
     .forEach(btn => {
 
       btn.onclick =
-        async ()=>{
+        async () => {
 
           const id = btn.dataset.star;
           const app = apps.find(a => a._id === id);
@@ -2684,19 +2676,19 @@ function renderTable(){
   wrap
     .querySelectorAll('[data-inline-field]')
     .forEach(cell => {
-      cell.ondblclick = ()=>{
+      cell.ondblclick = () => {
         const id = cell.dataset.inlineId;
         const field = cell.dataset.inlineField;
         const appData = apps.find(a => a._id === id);
-        if(!appData) return;
+        if (!appData) return;
         const currentVal = appData[field] || '';
         cell.innerHTML = '<input class="inline-edit" type="text" value="' + esc(currentVal) + '">';
         const input = cell.querySelector('input');
         input.focus();
         input.select();
-        const save = async ()=>{
+        const save = async () => {
           const newVal = input.value.trim();
-          if(newVal !== currentVal){
+          if (newVal !== currentVal) {
             await fetch(API + '/' + id, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
@@ -2709,103 +2701,212 @@ function renderTable(){
           }
         };
         input.onblur = save;
-        input.onkeydown = (e)=>{
-          if(e.key === 'Enter'){ e.preventDefault(); input.blur(); }
-          if(e.key === 'Escape'){ cell.textContent = currentVal; }
+        input.onkeydown = (e) => {
+          if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+          if (e.key === 'Escape') { cell.textContent = currentVal; }
         };
       };
     });
 
 
   // ==========================================================
-  // EDIT NOTES
+  // EDIT NOTES (via modal)
   // ==========================================================
 
+  let notesModalAppId = null;
+  let notesModalIsDirty = false;
+
+  const notesModal = document.getElementById('notesModal');
+  const notesTextarea = document.getElementById('notesModalTextarea');
+  const notesModalSave = document.getElementById('notesModalSave');
+  const notesModalCancel = document.getElementById('notesModalCancel');
+
+  // View mode: modal opens in readonly mode, Edit button to enable editing
+  let notesWereEdited = false;
+  let isEditMode = false;
+  let originalNotes = '';
+
+  function updateSaveButtonText() {
+    notesModalSave.textContent = notesWereEdited ? 'Save' : 'Edit';
+  }
+
+  function setTextareaReadOnly(readonly) {
+    notesTextarea.readOnly = readonly;
+    notesTextarea.style.background = readonly ? 'var(--slate-soft)' : 'var(--bg)';
+    notesTextarea.style.cursor = readonly ? 'default' : 'text';
+  }
+
+  function enterEditMode() {
+    isEditMode = true;
+    setTextareaReadOnly(false);
+    notesTextarea.focus();
+    notesTextarea.select();
+    updateSaveButtonText();
+  }
+
+  async function exitEditMode(saveChanges = false) {
+    if (!notesModalAppId) {
+      closeNotesModal();
+      return;
+    }
+    if (saveChanges) {
+      const newNotes = notesTextarea.value.trim();
+      const app = apps.find(a => a._id === notesModalAppId);
+      const currentNotes = app ? (app.notes || '') : '';
+      if (newNotes !== currentNotes) {
+        await fetch(
+          `${API}/${notesModalAppId}`,
+          {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notes: newNotes })
+          }
+        );
+        showToast('Notes updated', 'success');
+        await loadApps();
+      }
+    }
+    setTextareaReadOnly(true);
+    isEditMode = false;
+    notesWereEdited = false;
+    updateSaveButtonText();
+  }
+
+  // const notesModalCloseBtn = document.getElementById('notesModalClose');
+
+  function openNotesModal(id) {
+    const app = apps.find(a => a._id === id);
+    if (!app) return;
+
+    notesModalAppId = id;
+    notesModalIsDirty = false;
+    originalNotes = app.notes || '';
+    notesTextarea.value = originalNotes;
+    notesWereEdited = false;
+    isEditMode = false;
+    setTextareaReadOnly(true);
+    updateSaveButtonText();
+    notesModal.classList.remove('hidden');
+    document.body.classList.add('notes-modal-open');
+    if (notesModal) notesModal.classList.add('notes-modal-open');
+
+    // Show full note in the row while modal is open
+    const rowNotesCell = document.querySelector(`[data-notes-id="${id}"]`);
+    if (rowNotesCell) rowNotesCell.classList.add('modal-open');
+
+    setTimeout(() => notesTextarea.focus(), 50);
+  }
+
+  function closeNotesModal() {
+    notesModalAppId = null;
+    notesModal.classList.add('hidden');
+    document.body.classList.remove('notes-modal-open');
+    if (notesModal) notesModal.classList.remove('notes-modal-open');
+
+    // Hide full note in row, back to truncated view
+    notesWereEdited = false;
+    isEditMode = false;
+    updateSaveButtonText();
+    const rowNotesCell = document.querySelector(`[data-notes-id="${notesModalAppId}"]`);
+    if (rowNotesCell) rowNotesCell.classList.remove('modal-open');
+  }
+
+  async function saveNotesFromModal() {
+    if (!notesModalAppId) return;
+
+    const newNotes = notesTextarea.value.trim();
+    const app = apps.find(a => a._id === notesModalAppId);
+    const currentNotes = app ? (app.notes || '') : '';
+
+    if (newNotes === currentNotes) {
+      closeNotesModal();
+      return;
+    }
+
+    await fetch(
+      `${API}/${notesModalAppId}`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: newNotes })
+      }
+    );
+
+    showToast('Notes updated', 'success');
+    await loadApps();
+    closeNotesModal();
+  }
+
+  // Open modal on edit button click (✎)
   wrap
-    .querySelectorAll(
-      '[data-edit]'
-    )
+    .querySelectorAll('[data-edit]')
     .forEach(btn => {
-
-      btn.onclick = ()=>{
-
-        const id =
-          btn.dataset.edit;
-
-
-        const app =
-          apps.find(
-            a => a._id === id
-          );
-
-
-        const cell =
-          wrap.querySelector(
-            `[data-notes-id="${id}"]`
-          );
-
-
-        cell.innerHTML = `
-          <textarea
-            id="edit-${id}"
-          >${app.notes || ''}</textarea>
-        `;
-
-
-        const ta =
-          document.getElementById(
-            `edit-${id}`
-          );
-
-
-        ta.focus();
-
-
-        const saveEdit =
-          async ()=>{
-
-            await fetch(
-              `${API}/${id}`,
-              {
-                method: 'PATCH',
-
-                headers: {
-                  'Content-Type':
-                    'application/json'
-                },
-
-                body:
-                  JSON.stringify({
-                    notes:
-                      ta.value.trim()
-                  })
-              }
-            );
-
-
-            await loadApps();
-          };
-
-
-        ta.onblur =
-          saveEdit;
-
-
-        ta.onkeydown =
-          (e)=>{
-
-            if(
-              e.key === 'Enter' &&
-              !e.shiftKey
-            ){
-
-              e.preventDefault();
-
-              ta.blur();
-            }
-          };
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const id = btn.dataset.edit;
+        openNotesModal(id);
       };
     });
+
+  // Also open modal when clicking directly on the notes text
+  wrap
+    .querySelectorAll('[data-notes-id]')
+    .forEach(cell => {
+      cell.onclick = () => {
+        const id = cell.dataset.notesId;
+        openNotesModal(id);
+      };
+    });
+
+  // Save button
+  notesModalSave.onclick = async () => {
+    if (!isEditMode) {
+      // First click on Edit: enter edit mode
+      enterEditMode();
+    } else {
+      // Second click on Save: save and exit edit mode
+      await exitEditMode(true);
+    }
+  };
+
+  // Cancel button
+  notesModalCancel.onclick = closeNotesModal;
+
+  // Close button (X)
+  // notesModalCloseBtn.onclick = closeNotesModal;
+
+  // Close on Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && notesModal && !notesModal.classList.contains('hidden')) {
+      closeNotesModal();
+    }
+  });
+
+  // Close when clicking outside the modal card
+  if (notesModal) {
+    notesModal.onclick = (e) => {
+      if (e.target.id === 'notesModal') {
+        closeNotesModal();
+      }
+    };
+  }
+
+  // Save on Ctrl+Enter / Cmd+Enter in textarea
+  notesTextarea?.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      saveNotesFromModal();
+    }
+  });
+
+  // Track changes for dirty state only in edit mode
+  notesTextarea?.addEventListener('input', () => {
+    if (!isEditMode) return;
+    notesModalIsDirty = notesTextarea.value !== '';
+    const currentText = notesTextarea.value.trim();
+    notesWereEdited = currentText !== originalNotes;
+    updateSaveButtonText();
+  });
 
 
   // ==========================================================
@@ -2819,12 +2920,12 @@ function renderTable(){
     .forEach(btn => {
 
       btn.onclick =
-        async ()=>{
+        async () => {
 
           const app = apps.find(a => a._id === btn.dataset.del);
           const label = app ? app.company : 'this application';
           const confirmed = await askConfirm(`Delete ${label}?`);
-          if(!confirmed) return;
+          if (!confirmed) return;
 
           const id = btn.dataset.del;
           const deletedApp = apps.find(a => a._id === id);
@@ -2840,10 +2941,10 @@ function renderTable(){
           await loadStats();
 
           // Show undo toast for 5 seconds
-          if(deletedApp){
+          if (deletedApp) {
             pendingUndo = deletedApp;
-            showUndoToast('Deleted ' + label, async ()=>{
-              if(!pendingUndo) return;
+            showUndoToast('Deleted ' + label, async () => {
+              if (!pendingUndo) return;
               const d = pendingUndo;
               await fetch(API, {
                 method: 'POST',
@@ -2877,7 +2978,7 @@ function renderTable(){
     .forEach(radio => {
 
       radio.onchange =
-        async (e)=>{
+        async (e) => {
 
           const id =
             e.target.name
@@ -2915,7 +3016,7 @@ function renderTable(){
           );
 
 
-          await loadApps();          await loadStats();
+          await loadApps(); await loadStats();
         };
     });
 
@@ -2927,7 +3028,7 @@ function renderTable(){
   wrap
     .querySelectorAll('[data-snooze]')
     .forEach(btn => {
-      btn.onclick = ()=>{
+      btn.onclick = () => {
         const id = btn.dataset.snooze;
         showSnoozeModal(id);
       };
@@ -2944,7 +3045,7 @@ function renderTable(){
     )
     .forEach(btn => {
 
-      btn.onclick = ()=>{
+      btn.onclick = () => {
 
         currentPage =
           parseInt(
@@ -2971,15 +3072,15 @@ function renderTable(){
 
 let bulkSelectedIds = [];
 
-function getSelectedIds(){
+function getSelectedIds() {
   return bulkSelectedIds;
 }
 
-function updateBulkBar(){
+function updateBulkBar() {
   const bar = document.getElementById('bulkBar');
   const countEl = document.getElementById('bulkCount');
-  if(!bar || !countEl) return;
-  if(bulkSelectedIds.length > 0){
+  if (!bar || !countEl) return;
+  if (bulkSelectedIds.length > 0) {
     bar.classList.remove('hidden');
     countEl.textContent = bulkSelectedIds.length + ' selected';
   } else {
@@ -2987,35 +3088,41 @@ function updateBulkBar(){
   }
 }
 
-document.getElementById('bulkApplyBtn')?.addEventListener('click', async ()=>{
+document.getElementById('bulkApplyBtn')?.addEventListener('click', async () => {
   const statusSelect = document.getElementById('bulkStatusSelect');
   const newStatus = statusSelect?.value;
-  if(!newStatus || !bulkSelectedIds.length){
+  if (!newStatus || !bulkSelectedIds.length) {
     showToast('Select a status first', 'error');
     return;
   }
-  for(const id of bulkSelectedIds){
-    await fetch(API + '/' + id, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: newStatus })
-    });
+  try {
+    await Promise.all(bulkSelectedIds.map(id =>
+      fetch(API + '/' + id, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      })
+    ));
+    showToast('Updated ' + bulkSelectedIds.length + ' applications to ' + newStatus, 'success');
+  } catch (err) {
+    console.error('Bulk update failed:', err);
+    showToast('Some updates failed', 'error');
+  } finally {
+    bulkSelectedIds = [];
+    updateBulkBar();
+    await loadApps();
+    await loadStats();
   }
-  showToast('Updated ' + bulkSelectedIds.length + ' applications to ' + newStatus, 'success');
-  bulkSelectedIds = [];
-  updateBulkBar();
-  await loadApps();
-  await loadStats();
 });
 
-document.getElementById('bulkCancelBtn')?.addEventListener('click', ()=>{
+document.getElementById('bulkCancelBtn')?.addEventListener('click', () => {
   bulkSelectedIds = [];
   updateBulkBar();
   render();
 });
 
-document.getElementById('bulkDeleteBtn')?.addEventListener('click', async ()=>{
-  if(!bulkSelectedIds.length){
+document.getElementById('bulkDeleteBtn')?.addEventListener('click', async () => {
+  if (!bulkSelectedIds.length) {
     showToast('No applications selected', 'error');
     return;
   }
@@ -3024,16 +3131,16 @@ document.getElementById('bulkDeleteBtn')?.addEventListener('click', async ()=>{
     `Delete ${count} application${count > 1 ? 's' : ''}?`,
     { confirmText: 'Delete', confirmClass: 'confirm-danger' }
   );
-  if(!confirmed) return;
+  if (!confirmed) return;
 
   // Save a copy for undo
   const deletedApps = bulkSelectedIds
     .map(id => apps.find(a => a._id === id))
     .filter(Boolean);
 
-  for(const id of bulkSelectedIds){
-    await fetch(`${API}/${id}`, { method: 'DELETE' });
-  }
+  await Promise.all(bulkSelectedIds.map(id =>
+    fetch(`${API}/${id}`, { method: 'DELETE' })
+  ));
 
   const deletedIds = [...bulkSelectedIds];
   bulkSelectedIds = [];
@@ -3042,14 +3149,14 @@ document.getElementById('bulkDeleteBtn')?.addEventListener('click', async ()=>{
   await loadStats();
 
   // Show undo toast for 5 seconds
-  if(deletedApps.length){
+  if (deletedApps.length) {
     pendingUndo = { items: deletedApps, ids: deletedIds };
     showUndoToast(
       `Deleted ${count} application${count > 1 ? 's' : ''}`,
-      async ()=>{
-        if(!pendingUndo) return;
+      async () => {
+        if (!pendingUndo) return;
         const items = pendingUndo.items;
-        for(const d of items){
+        for (const d of items) {
           await fetch(API, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -3078,31 +3185,31 @@ document.getElementById('bulkDeleteBtn')?.addEventListener('click', async ()=>{
 
 function renderPagination(
   totalPages
-){
+) {
 
   let pages = [];
 
 
-  for(
+  for (
     let p = 1;
     p <= totalPages;
     p++
-  ){
+  ) {
 
-    if(
+    if (
       p === 1 ||
       p === totalPages ||
       Math.abs(
         p - currentPage
       ) <= 1
-    ){
+    ) {
 
       pages.push(p);
 
-    } else if(
+    } else if (
       pages[pages.length - 1]
       !== '...'
-    ){
+    ) {
 
       pages.push('...');
     }
@@ -3115,22 +3222,21 @@ function renderPagination(
 
       <button
         data-page="${currentPage - 1}"
-        ${
-          currentPage === 1
-            ? 'disabled'
-            : ''
-        }
+        ${currentPage === 1
+      ? 'disabled'
+      : ''
+    }
       >
         ‹
       </button>
 
 
       ${pages.map(
-        p =>
+      p =>
 
-          p === '...'
+        p === '...'
 
-            ? `
+          ? `
               <span
                 style="
                   padding:0 4px;
@@ -3141,28 +3247,26 @@ function renderPagination(
               </span>
             `
 
-            : `
+          : `
               <button
                 data-page="${p}"
-                class="${
-                  p === currentPage
-                    ? 'active'
-                    : ''
-                }"
+                class="${p === currentPage
+            ? 'active'
+            : ''
+          }"
               >
                 ${p}
               </button>
             `
-      ).join('')}
+    ).join('')}
 
 
       <button
         data-page="${currentPage + 1}"
-        ${
-          currentPage === totalPages
-            ? 'disabled'
-            : ''
-        }
+        ${currentPage === totalPages
+      ? 'disabled'
+      : ''
+    }
       >
         ›
       </button>
@@ -3177,7 +3281,7 @@ function renderPagination(
 // ESCAPE HTML
 // ============================================================
 
-function esc(s){
+function esc(s) {
 
   const d =
     document.createElement('div');
@@ -3193,7 +3297,7 @@ function esc(s){
 // RENDER
 // ============================================================
 
-function render(){
+function render() {
 
   renderFilters();
 
@@ -3207,13 +3311,13 @@ function render(){
 // DUPLICATE WARNING
 // ============================================================
 
-function checkDuplicate(){
+function checkDuplicate() {
   const companyInput = document.getElementById('f-company');
   const roleInput = document.getElementById('f-role');
   const warning = document.getElementById('duplicateWarning');
-  if(!companyInput || !warning) return;
+  if (!companyInput || !warning) return;
   const val = companyInput.value.trim().toLowerCase();
-  if(!val){ warning.classList.remove('show'); return; }
+  if (!val) { warning.classList.remove('show'); return; }
 
   const roleVal = (roleInput?.value || '').trim().toLowerCase();
 
@@ -3232,10 +3336,10 @@ function checkDuplicate(){
 
   warning.classList.remove('dup-company', 'dup-exact');
 
-  if(exactMatch){
+  if (exactMatch) {
     warning.classList.add('show', 'dup-exact');
     warning.textContent = '🔴 "' + exactMatch.company + ' — ' + (exactMatch.role || 'No role') + '" already exists (' + exactMatch.status + '). Add duplicate?';
-  } else if(companyMatch){
+  } else if (companyMatch) {
     warning.classList.add('show', 'dup-company');
     warning.textContent = '⚠️ "' + companyMatch.company + '" already exists (' + companyMatch.status + '). Add another entry?';
   } else {
@@ -3253,13 +3357,13 @@ document.getElementById('f-role')?.addEventListener('input', checkDuplicate);
 
 let isPrinting = false;
 
-document.getElementById('printBtn')?.addEventListener('click', ()=>{
+document.getElementById('printBtn')?.addEventListener('click', () => {
   // Temporarily show ALL applications (no pagination) for print
   isPrinting = true;
   renderTable();
 
   // Small delay to let the DOM update, then print
-  setTimeout(()=>{
+  setTimeout(() => {
     window.print();
 
     // After print dialog closes, restore pagination
@@ -3273,21 +3377,21 @@ document.getElementById('printBtn')?.addEventListener('click', ()=>{
 // WEEKLY GOAL: EDIT / SAVE
 // ============================================================
 
-document.getElementById('editGoalBtn')?.addEventListener('click', ()=>{
+document.getElementById('editGoalBtn')?.addEventListener('click', () => {
   const inputGroup = document.getElementById('goalInputGroup');
   const display = document.getElementById('goalDisplay');
   const goalInput = document.getElementById('goalInput');
-  if(inputGroup) inputGroup.classList.toggle('hidden');
-  if(display) display.classList.toggle('hidden');
-  if(goalInput) goalInput.value = weeklyGoal;
+  if (inputGroup) inputGroup.classList.toggle('hidden');
+  if (display) display.classList.toggle('hidden');
+  if (goalInput) goalInput.value = weeklyGoal;
   document.getElementById('editGoalBtn').textContent =
     inputGroup?.classList.contains('hidden') ? 'Edit' : 'Cancel';
 });
 
-document.getElementById('saveGoalBtn')?.addEventListener('click', ()=>{
+document.getElementById('saveGoalBtn')?.addEventListener('click', () => {
   const goalInput = document.getElementById('goalInput');
   const val = parseInt(goalInput?.value, 10);
-  if(val && val > 0){
+  if (val && val > 0) {
     weeklyGoal = val;
     // Save to DB for cross-device sync
     fetch('/api/settings/weeklyGoal', {
@@ -3311,7 +3415,7 @@ document.getElementById('saveGoalBtn')?.addEventListener('click', ()=>{
 document.getElementById(
   'addBtn'
 ).onclick =
-  async ()=>{
+  async () => {
 
     const company =
       document
@@ -3320,7 +3424,7 @@ document.getElementById(
         .trim();
 
 
-    if(!company){
+    if (!company) {
 
       showToast(
         'Company name needed',
@@ -3395,7 +3499,7 @@ document.getElementById(
       a.company.toLowerCase().trim() === dupCompany
     );
 
-    if(exactDup || companyDup){
+    if (exactDup || companyDup) {
       const isExact = !!exactDup;
       const msg = isExact
         ? '🔴 "' + exactDup.company + ' — ' + (exactDup.role || 'No role') + '" already exists (' + exactDup.status + '). Add duplicate?'
@@ -3404,7 +3508,7 @@ document.getElementById(
         confirmText: isExact ? 'Yes, Add Duplicate' : 'Add Anyway',
         confirmClass: isExact ? 'confirm-danger' : 'confirm-add'
       });
-      if(!ok) return;
+      if (!ok) return;
     }
 
 
@@ -3433,12 +3537,12 @@ document.getElementById(
       'f-eventdate',
       'f-eventlabel'
     ]
-    .forEach(
-      id =>
-        document
-          .getElementById(id)
-          .value = ''
-    );
+      .forEach(
+        id =>
+          document
+            .getElementById(id)
+            .value = ''
+      );
 
     document.getElementById('f-priority').checked = false;
     document.getElementById('starToggle').classList.remove('starred');
@@ -3476,7 +3580,7 @@ document.getElementById(
 document.getElementById(
   'toggleForm'
 ).onclick =
-  ()=>{
+  () => {
 
     const body =
       document.getElementById(
@@ -3517,10 +3621,10 @@ const fab =
   );
 
 
-if(fab){
+if (fab) {
 
   fab.onclick =
-    ()=>{
+    () => {
 
       const body =
         document.getElementById(
@@ -3549,7 +3653,7 @@ if(fab){
 
 
       setTimeout(
-        ()=>{
+        () => {
           document
             .getElementById(
               'f-company'
@@ -3570,9 +3674,9 @@ document
   .getElementById('f-company')
   .addEventListener(
     'keydown',
-    (e)=>{
+    (e) => {
 
-      if(e.key === 'Enter'){
+      if (e.key === 'Enter') {
 
         e.preventDefault();
 
@@ -3589,22 +3693,22 @@ document
 // ============================================================
 
 const CSV_COLUMNS = ['company', 'role', 'source', 'dateApplied', 'status', 'notes', 'portalLink'];
-const VALID_SOURCES = ['Wellfound','Naukri','Internshala','HiringCafe','Company site','Cold email','LinkedIn','Referral','Other'];
+const VALID_SOURCES = ['Wellfound', 'Naukri', 'Internshala', 'HiringCafe', 'Company site', 'Cold email', 'LinkedIn', 'Referral', 'Other'];
 
-function csvEscape(value){
+function csvEscape(value) {
   const s = (value === undefined || value === null) ? '' : String(value);
-  if(/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+  if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
   return s;
 }
 
-function exportCsv(){
-  if(!apps.length){
+function exportCsv() {
+  if (!apps.length) {
     showToast('Nothing to export yet', 'error');
     return;
   }
   const header = CSV_COLUMNS.join(',');
   const rows = apps.map(a => CSV_COLUMNS.map(col => {
-    if(col === 'dateApplied') return csvEscape(a.dateApplied ? new Date(a.dateApplied).toISOString().slice(0,10) : '');
+    if (col === 'dateApplied') return csvEscape(a.dateApplied ? new Date(a.dateApplied).toISOString().slice(0, 10) : '');
     return csvEscape(a[col]);
   }).join(','));
   const csv = [header, ...rows].join('\n');
@@ -3612,7 +3716,7 @@ function exportCsv(){
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `applications-${new Date().toISOString().slice(0,10)}.csv`;
+  link.download = `applications-${new Date().toISOString().slice(0, 10)}.csv`;
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -3621,21 +3725,21 @@ function exportCsv(){
 }
 
 // Minimal CSV line parser: handles quoted fields with embedded commas/quotes.
-function parseCsv(text){
+function parseCsv(text) {
   const lines = text.replace(/\r\n/g, '\n').split('\n').filter(l => l.trim() !== '');
-  if(!lines.length) return [];
+  if (!lines.length) return [];
   const parseLine = (line) => {
     const out = [];
     let cur = '', inQuotes = false;
-    for(let i = 0; i < line.length; i++){
+    for (let i = 0; i < line.length; i++) {
       const ch = line[i];
-      if(inQuotes){
-        if(ch === '"' && line[i+1] === '"'){ cur += '"'; i++; }
-        else if(ch === '"'){ inQuotes = false; }
+      if (inQuotes) {
+        if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+        else if (ch === '"') { inQuotes = false; }
         else { cur += ch; }
       } else {
-        if(ch === '"'){ inQuotes = true; }
-        else if(ch === ','){ out.push(cur); cur = ''; }
+        if (ch === '"') { inQuotes = true; }
+        else if (ch === ',') { out.push(cur); cur = ''; }
         else { cur += ch; }
       }
     }
@@ -3651,18 +3755,18 @@ function parseCsv(text){
   });
 }
 
-async function importCsv(file){
+async function importCsv(file) {
   const text = await file.text();
   const rows = parseCsv(text);
   const validRows = rows.filter(r => r.company);
 
-  if(!validRows.length){
+  if (!validRows.length) {
     showToast('No valid rows found (need a "company" column)', 'error');
     return;
   }
 
   let imported = 0;
-  for(const row of validRows){
+  for (const row of validRows) {
     const body = {
       company: row.company,
       role: row.role || '',
@@ -3679,7 +3783,7 @@ async function importCsv(file){
         body: JSON.stringify(body)
       });
       imported++;
-    } catch(e){ /* skip failed row, keep going */ }
+    } catch (e) { /* skip failed row, keep going */ }
   }
 
   showToast(`Imported ${imported} of ${validRows.length} rows`, imported ? 'success' : 'error');
@@ -3701,7 +3805,7 @@ document.getElementById('closeCsvImport')?.addEventListener('click', () => {
 
 // Click outside to close
 document.getElementById('csvImportModal')?.addEventListener('click', (e) => {
-  if(e.target.id === 'csvImportModal'){
+  if (e.target.id === 'csvImportModal') {
     e.target.classList.add('hidden');
   }
 });
@@ -3729,7 +3833,7 @@ document.getElementById('csvDownloadTemplate')?.addEventListener('click', () => 
 // Actual file import handler
 document.getElementById('importCsvFile')?.addEventListener('change', async (e) => {
   const file = e.target.files[0];
-  if(!file) return;
+  if (!file) return;
   // Close the dialog
   document.getElementById('csvImportModal')?.classList.add('hidden');
   showToast('Importing...', 'success');
@@ -3747,29 +3851,29 @@ let calendarTasks = [];
 let calCursor = new Date(); // month currently shown
 let calSelectedDate = null;
 
-function ymd(d){
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+function ymd(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-async function loadCalendar(){
+async function loadCalendar() {
   try {
     const res = await fetch(API + '/calendar');
     calendarEvents = await res.json();
-  } catch(e){ calendarEvents = []; }
+  } catch (e) { calendarEvents = []; }
 
   try {
     const res2 = await fetch('/api/tasks');
     calendarTasks = await res2.json();
-  } catch(e){ calendarTasks = []; }
+  } catch (e) { calendarTasks = []; }
 
   renderCalendar();
 }
 
-function eventsOnDate(dateStr){
+function eventsOnDate(dateStr) {
   return calendarEvents.filter(ev => ev.eventDate && ymd(new Date(ev.eventDate)) === dateStr);
 }
 
-function tasksOnDate(dateStr){
+function tasksOnDate(dateStr) {
   return calendarTasks.filter(t => t.date && ymd(new Date(t.date)) === dateStr);
 }
 
@@ -3777,18 +3881,18 @@ function tasksOnDate(dateStr){
 // same `apps` array the table renders from) so the calendar always matches
 // what's actually due — no separate endpoint needed. Rejected/Offer
 // applications are excluded since they're no longer being followed up on.
-function followupsOnDate(dateStr){
+function followupsOnDate(dateStr) {
   return apps.filter(a =>
     a.nextFollowupDate &&
-    !['Rejected','Offer'].includes(a.status) &&
+    !['Rejected', 'Offer'].includes(a.status) &&
     ymd(new Date(a.nextFollowupDate)) === dateStr
   );
 }
 
-function renderCalendar(){
+function renderCalendar() {
   const grid = document.getElementById('calendarGrid');
   const label = document.getElementById('calLabel');
-  if(!grid || !label) return;
+  if (!grid || !label) return;
 
   const year = calCursor.getFullYear();
   const month = calCursor.getMonth();
@@ -3799,23 +3903,23 @@ function renderCalendar(){
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const todayStr = ymd(new Date());
 
-  const dows = ['S','M','T','W','T','F','S'];
+  const dows = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   let html = dows.map(d => `<div class="cal-dow">${d}</div>`).join('');
 
-  for(let i = 0; i < startOffset; i++){
+  for (let i = 0; i < startOffset; i++) {
     html += `<div class="cal-day"></div>`;
   }
 
-  for(let day = 1; day <= daysInMonth; day++){
+  for (let day = 1; day <= daysInMonth; day++) {
     const dateObj = new Date(year, month, day);
     const dateStr = ymd(dateObj);
     const dayEvents = eventsOnDate(dateStr);
     const dayTasks = tasksOnDate(dateStr);
     const dayFollowups = followupsOnDate(dateStr);
     const classes = ['cal-day', 'in-month'];
-    if(dateStr === todayStr) classes.push('today');
-    if(dayEvents.length || dayTasks.length || dayFollowups.length) classes.push('has-event');
-    if(dateStr === calSelectedDate) classes.push('selected');
+    if (dateStr === todayStr) classes.push('today');
+    if (dayEvents.length || dayTasks.length || dayFollowups.length) classes.push('has-event');
+    if (dateStr === calSelectedDate) classes.push('selected');
 
     // Build small preview chips (max 2 visible, "+N more" beyond that) —
     // like a mobile calendar's inline event list, not just a dot.
@@ -3852,11 +3956,11 @@ function renderCalendar(){
   renderCalendarDayEvents();
 }
 
-function renderCalendarDayEvents(){
+function renderCalendarDayEvents() {
   const wrap = document.getElementById('calendarDayEvents');
-  if(!wrap) return;
+  if (!wrap) return;
 
-  if(!calSelectedDate){
+  if (!calSelectedDate) {
     wrap.innerHTML = `<div class="panel-muted" style="font-size:11px;color:var(--ink-soft)">Tap any day to see or add reminders — coral = follow-up due, amber = interview/OA event, teal = your reminder.</div>`;
     return;
   }
@@ -3868,7 +3972,7 @@ function renderCalendarDayEvents(){
   let html = '';
 
   html += `<div class="cal-section-label cal-section-followup">Follow-ups due</div>`;
-  if(dayFollowups.length){
+  if (dayFollowups.length) {
     html += dayFollowups.map(a => `
       <div class="cal-event-item cal-followup-item" data-jump-company="${esc(a.company)}" title="View in Applications list">
         <div>
@@ -3882,7 +3986,7 @@ function renderCalendarDayEvents(){
   }
 
   html += `<div class="cal-section-label">Application events</div>`;
-  if(dayEvents.length){
+  if (dayEvents.length) {
     html += dayEvents.map(ev => `
       <div class="cal-event-item">
         <div>
@@ -3896,7 +4000,7 @@ function renderCalendarDayEvents(){
   }
 
   html += `<div class="cal-section-label">Reminders / to-dos</div>`;
-  if(dayTasks.length){
+  if (dayTasks.length) {
     html += dayTasks.map(t => `
       <div class="cal-task-item ${t.done ? 'done' : ''}">
         <input class="cal-task-checkbox" type="checkbox" data-task-toggle="${t._id}" ${t.done ? 'checked' : ''}>
@@ -3945,7 +4049,7 @@ function renderCalendarDayEvents(){
       const task = calendarTasks.find(t => t._id === btn.dataset.taskDel);
       const label = task ? task.title : 'this reminder';
       const confirmed = await askConfirm(`Delete "${label}"?`);
-      if(!confirmed) return;
+      if (!confirmed) return;
 
       await fetch(`/api/tasks/${btn.dataset.taskDel}`, { method: 'DELETE' });
       showToast('Reminder deleted', 'success');
@@ -3957,7 +4061,7 @@ function renderCalendarDayEvents(){
   const input = document.getElementById('calNewTask');
   const submitTask = async () => {
     const title = input.value.trim();
-    if(!title) return;
+    if (!title) return;
     await fetch('/api/tasks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -3967,7 +4071,7 @@ function renderCalendarDayEvents(){
     await loadCalendar();
   };
   addBtn.onclick = submitTask;
-  input.addEventListener('keydown', (e) => { if(e.key === 'Enter'){ e.preventDefault(); submitTask(); } });
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); submitTask(); } });
 }
 
 document.getElementById('calPrev')?.addEventListener('click', () => {
@@ -4022,10 +4126,10 @@ window.addEventListener('beforeinstallprompt', (e) => {
 });
 
 document.getElementById('installBtn')?.addEventListener('click', async () => {
-  if(!deferredInstallPrompt) return;
+  if (!deferredInstallPrompt) return;
   deferredInstallPrompt.prompt();
   const { outcome } = await deferredInstallPrompt.userChoice;
-  if(outcome === 'accepted'){
+  if (outcome === 'accepted') {
     showToast('App installed', 'success');
   }
   deferredInstallPrompt = null;
@@ -4039,7 +4143,7 @@ window.addEventListener('appinstalled', () => {
   deferredInstallPrompt = null;
 });
 
-if(window.matchMedia('(display-mode: standalone)').matches){
+if (window.matchMedia('(display-mode: standalone)').matches) {
   document.getElementById('installBtn')?.classList.add('hidden');
 }
 
@@ -4048,15 +4152,15 @@ if(window.matchMedia('(display-mode: standalone)').matches){
 // LOAD SETTINGS FROM DB
 // ============================================================
 
-async function loadSettings(){
+async function loadSettings() {
   try {
     const res = await fetch('/api/settings');
     const settings = await res.json();
-    if(settings.weeklyGoal !== undefined && settings.weeklyGoal !== null){
+    if (settings.weeklyGoal !== undefined && settings.weeklyGoal !== null) {
       weeklyGoal = parseInt(settings.weeklyGoal, 10) || 5;
       renderWeeklyGoal();
     }
-  } catch(e){ /* ignore — use default */ }
+  } catch (e) { /* ignore — use default */ }
 }
 
 

@@ -71,6 +71,8 @@ A full-stack MERN-style web application for tracking job applications, managing 
 │    ├── Mounts route modules:                            │
 │    │     /api/applications  →  routes/applications.js   │
 │    │     /api/tasks         →  routes/tasks.js          │
+│    │     /api/settings      →  routes/settings.js       │
+│    ├── Rate limiting middleware (in-memory)              │
 │    └── Runs one-time follow-up date normalization       │
 │                                                         │
 │  routes/applications.js                                 │
@@ -121,7 +123,8 @@ job-application-tracker/
 │
 ├── models/
 │   ├── Application.js           # Mongoose schema + static constants for Application
-│   └── Task.js                  # Mongoose schema for Task
+│   ├── Task.js                  # Mongoose schema for Task
+│   └── Settings.js              # Mongoose schema for key-value app settings
 │
 ├── routes/
 │   ├── applications.js          # REST routes for applications + stats + calendar
@@ -177,6 +180,19 @@ Each document represents one to-do task.
 | `notes` | String | `""` | Optional notes |
 | `createdAt` | Date | auto | Timestamps |
 | `updatedAt` | Date | auto | Timestamps |
+
+### Settings Schema (`models/Settings.js`)
+
+Generic key-value store for app settings. Only whitelisted keys are allowed.
+
+| Field | Type | Default | Purpose |
+|---|---|---|---|
+| `key` | String (required, unique) | — | Setting name, e.g. `weeklyGoal` |
+| `value` | Mixed (required) | — | Setting value (type varies by key) |
+| `createdAt` | Date | auto | Timestamps |
+| `updatedAt` | Date | auto | Timestamps |
+
+**Allowed keys:** `weeklyGoal` (Number, 1–100)
 
 ---
 

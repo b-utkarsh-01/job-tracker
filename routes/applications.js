@@ -2,13 +2,16 @@ const express = require('express');
 const router = express.Router();
 const Application = require('../models/Application');
 
-function threeDaysFromNow() {
-  const d = new Date();
-  d.setDate(d.getDate() + 3);
-  d.setHours(0, 0, 0, 0); // normalize to midnight so "due" triggers for the
-                          // whole day, not just after the exact time-of-day
-                          // the application was originally added
-  return d;
+// Whitelist of allowed URI schemes for portal links
+const ALLOWED_SCHEMES = ['http:', 'https:'];
+function isSafeUrl(str) {
+  if (!str || typeof str !== 'string') return false;
+  try {
+    const parsed = new URL(str);
+    return ALLOWED_SCHEMES.includes(parsed.protocol);
+  } catch {
+    return false;
+  }
 }
 
 // GET all applications
@@ -140,13 +143,14 @@ router.get('/calendar', async (req, res) => {
 // timestamp so the app lands back at its original position in the sort.
 router.post('/', async (req, res) => {
   try {
+    const portalLink = req.body.portalLink && isSafeUrl(req.body.portalLink) ? req.body.portalLink : '';
     const app = new Application({
       company: req.body.company,
       role: req.body.role,
       source: req.body.source,
       dateApplied: req.body.dateApplied || Date.now(),
       notes: req.body.notes,
-      portalLink: req.body.portalLink,
+      portalLink,
       status: req.body.status || 'Applied',
       priority: !!req.body.priority,
       eventDate: req.body.eventDate || null,
@@ -174,12 +178,17 @@ router.patch('/batch/order', async (req, res) => {
   try {
     const updates = req.body; // array of { _id, order }
     if (!Array.isArray(updates)) return res.status(400).json({ error: 'Expected array' });
-    const ops = updates.map(u => ({
-      updateOne: {
-        filter: { _id: u._id },
-        update: { order: u.order }
-      }
-    }));
+    if (updates.length > 500) return res.status(400).json({ error: 'Too many items (max 500)' });
+    const mongoose = require('mongoose');
+    const ops = updates
+      .filter(u => u._id && mongoose.Types.ObjectId.isValid(u._id))
+      .map(u => ({
+        updateOne: {
+          filter: { _id: u._id },
+          update: { order: Math.max(0, Math.floor(Number(u.order) || 0)) }
+        }
+      }));
+    if (!ops.length) return res.status(400).json({ error: 'No valid updates' });
     await Application.bulkWrite(ops);
     res.json({ ok: true });
   } catch (err) {
@@ -193,6 +202,10 @@ router.patch('/:id', async (req, res) => {
     const allowed = ['company', 'role', 'source', 'status', 'notes', 'dateApplied', 'portalLink', 'priority', 'eventDate', 'eventLabel'];
     const updates = {};
     allowed.forEach(f => { if (req.body[f] !== undefined) updates[f] = req.body[f]; });
+    // Sanitize portalLink to prevent javascript: URIs
+    if (updates.portalLink && !isSafeUrl(updates.portalLink)) {
+      updates.portalLink = '';
+    }
     const app = await Application.findByIdAndUpdate(req.params.id, updates, { new: true });
     if (!app) return res.status(404).json({ error: 'Not found' });
     res.json(app);

@@ -20,7 +20,17 @@ self.addEventListener('activate', (e) => {
 // cached copy if the network request actually fails (i.e. truly offline).
 // This also means the site correctly stops working when the server is down,
 // instead of silently serving a stale cached page.
+// Note: PATCH/POST/PUT/DELETE requests are not cached because Cache API
+// doesn't support these methods (they're used for API mutations).
 self.addEventListener('fetch', (e) => {
+  const method = e.request.method;
+  
+  // Skip caching for mutation requests (PATCH, POST, PUT, DELETE)
+  if (['PATCH', 'POST', 'PUT', 'DELETE'].includes(method)) {
+    e.respondWith(fetch(e.request));
+    return;
+  }
+  
   e.respondWith(
     fetch(e.request)
       .then(res => {
