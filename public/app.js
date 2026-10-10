@@ -2149,14 +2149,14 @@ document.getElementById('importCsvFile')?.addEventListener('change', async (e) =
 // CALENDAR (interview slots / OA deadlines + follow-ups + reminders)
 // ============================================================
 
-let calendarEvents = [];
-let calendarTasks = [];
-let calCursor = new Date(); // month currently shown
-let calSelectedDate = null;
-
 function ymd(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
+
+let calendarEvents = [];
+let calendarTasks = [];
+let calCursor = new Date(); // month currently shown
+let calSelectedDate = ymd(new Date());
 
 async function loadCalendar() {
   try {
@@ -2216,10 +2216,14 @@ function renderCalendar() {
     if (dateStr === calSelectedDate) classes.push('selected');
 
     // Small preview chips (max 2 visible, "+N more" beyond that).
+    const dayFollowups = followupsOnDate(dateStr);
+    const dayEvents = eventsOnDate(dateStr);
+    const dayTasks = tasksOnDate(dateStr);
+
     const allItems = [
-      ...followupsOnDate(dateStr).map(a => ({ text: `Follow up: ${a.company}`, cls: 'chip-followup' })),
-      ...eventsOnDate(dateStr).map(ev => ({ text: `${ev.company}${ev.eventLabel ? ' · ' + ev.eventLabel : ''}`, cls: 'chip-event' })),
-      ...tasksOnDate(dateStr).map(t => ({ text: t.title, cls: 'chip-task' + (t.done ? ' chip-done' : '') }))
+      ...dayFollowups.map(a => ({ text: `Follow up: ${a.company}`, cls: 'chip-followup' })),
+      ...dayEvents.map(ev => ({ text: `${ev.company}${ev.eventLabel ? ' · ' + ev.eventLabel : ''}`, cls: 'chip-event' })),
+      ...dayTasks.map(t => ({ text: t.title, cls: 'chip-task' + (t.done ? ' chip-done' : '') }))
     ];
     const visible = allItems.slice(0, 2);
     const extra = allItems.length - visible.length;
@@ -2227,10 +2231,17 @@ function renderCalendar() {
     const chipsHtml = visible.map(it => `<div class="cal-chip ${it.cls}">${esc(it.text)}</div>`).join('')
       + (extra > 0 ? `<div class="cal-chip-more">+${extra} more</div>` : '');
 
+    const dotsHtml = [
+      dayFollowups.length ? '<span class="cal-dot dot-followup" title="Follow-up due"></span>' : '',
+      dayEvents.length ? '<span class="cal-dot dot-event" title="Event / Interview"></span>' : '',
+      dayTasks.length ? '<span class="cal-dot dot-task" title="Reminder / To-do"></span>' : ''
+    ].join('');
+
     html += `
       <div class="${classes.join(' ')}" data-date="${dateStr}">
         <span class="cal-day-num">${day}</span>
         <div class="cal-day-chips">${chipsHtml}</div>
+        <div class="cal-day-dots">${dotsHtml}</div>
       </div>
     `;
   }
@@ -2262,7 +2273,17 @@ function renderCalendarDayEvents() {
   const dayTasks = tasksOnDate(calSelectedDate);
   const dayFollowups = followupsOnDate(calSelectedDate);
 
-  let html = '';
+  const dateParts = calSelectedDate.split('-');
+  const dateObj = new Date(Number(dateParts[0]), Number(dateParts[1]) - 1, Number(dateParts[2]));
+  const dateFmt = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  const isToday = calSelectedDate === ymd(new Date());
+
+  let html = `
+    <div class="cal-day-events-head">
+      <span class="cal-day-events-title">📅 ${esc(dateFmt)}</span>
+      ${isToday ? '<span class="cal-day-events-badge">Today</span>' : ''}
+    </div>
+  `;
 
   html += `<div class="cal-section-label cal-section-followup">Follow-ups due</div>`;
   if (dayFollowups.length) {
