@@ -935,15 +935,16 @@ body:has(.job-links-sidebar.sidebar-expanded){ padding-left: 276px; }
   box-shadow: 4px 0 20px rgba(0,0,0,.08);
 }
 
-/* Collapsed: toggle -> heading -> icons (ek column) */
+/* Collapsed: toggle -> heading -> icons -> add button (ek column) */
 .sidebar-rail{
+  position: relative;
   height: 100%;
   display: grid;
   gap: 10px 8px;
   padding: 12px 8px;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto auto minmax(0, 1fr);
-  grid-template-areas: "toggle" "brand" "links";
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-areas: "toggle" "brand" "links" "add";
 }
 /* Expanded: heading left, toggle right, links beech mein, "Add link" neeche */
 .job-links-sidebar.sidebar-expanded .sidebar-rail{
@@ -992,8 +993,38 @@ body:has(.job-links-sidebar.sidebar-expanded){ padding-left: 276px; }
   border-top: 1px solid var(--line);
   padding-top: 8px;
   scrollbar-width: none;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.2s ease;
 }
-.sidebar-links::-webkit-scrollbar{ display: none; }
+.sidebar-links::-webkit-scrollbar{ width: 4px; }
+.sidebar-links::-webkit-scrollbar-track{ background: transparent; }
+.sidebar-links::-webkit-scrollbar-thumb{ background: transparent; border-radius: 4px; transition: background 0.2s ease; }
+
+/* Show sleek thin scrollbar on hover */
+.job-links-sidebar:hover .sidebar-links{
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+.job-links-sidebar:hover .sidebar-links::-webkit-scrollbar-thumb{
+  background: var(--line);
+}
+.job-links-sidebar:hover .sidebar-links::-webkit-scrollbar-thumb:hover{
+  background: var(--ink-soft);
+}
+
+/* Dynamic scroll fade (affordance that more links exist above / below) */
+.sidebar-links.has-overflow-bottom{
+  mask-image: linear-gradient(to bottom, black calc(100% - 32px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black calc(100% - 32px), transparent 100%);
+}
+.sidebar-links.has-overflow-top.has-overflow-bottom{
+  mask-image: linear-gradient(to bottom, transparent 0, black 28px, black calc(100% - 32px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 28px, black calc(100% - 32px), transparent 100%);
+}
+.sidebar-links.has-overflow-top:not(.has-overflow-bottom){
+  mask-image: linear-gradient(to bottom, transparent 0, black 28px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 28px);
+}
 
 .sidebar-section{ margin-bottom: 10px; }
 .sidebar-section-head{ display: flex; align-items: center; padding: 6px 8px 4px; overflow: hidden; }
@@ -1040,7 +1071,7 @@ body:has(.job-links-sidebar.sidebar-expanded){ padding-left: 276px; }
 }
 .sidebar-remove-btn:hover{ color: var(--coral); background: var(--coral-soft); }
 
-/* ---- Add link button (expanded only) ---- */
+/* ---- Add link button ---- */
 .sidebar-add-chip{
   grid-area: add;
   display: flex; align-items: center; justify-content: center; gap: 6px;
@@ -1055,11 +1086,52 @@ body:has(.job-links-sidebar.sidebar-expanded){ padding-left: 276px; }
 .sidebar-add-chip:hover{ color: var(--teal); border-color: var(--teal); border-style: solid; background: var(--teal-soft); }
 .sidebar-add-chip:focus-visible{ outline: 2px solid var(--teal); outline-offset: 2px; }
 
-/* ---- Collapsed: sirf heading + icons ---- */
+/* ---- Scroll hint cue (more links below) ---- */
+.sidebar-scroll-hint{
+  position: absolute;
+  bottom: 56px;
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  width: 24px; height: 24px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--teal);
+  cursor: pointer;
+  z-index: 5;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease, background 0.15s ease, border-color 0.15s ease;
+}
+.sidebar-scroll-hint:hover{
+  background: var(--teal-soft);
+  color: var(--teal);
+  border-color: var(--teal);
+}
+.sidebar-scroll-hint.visible{
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ---- Collapsed: sirf heading + icons + compact '+' button ---- */
 .job-links-sidebar.sidebar-collapsed .sidebar-section-head,
 .job-links-sidebar.sidebar-collapsed .sidebar-rail-name,
 .job-links-sidebar.sidebar-collapsed .sidebar-remove-btn,
-.job-links-sidebar.sidebar-collapsed .sidebar-add-chip{ display: none; }
+.job-links-sidebar.sidebar-collapsed .sidebar-add-chip span{ display: none; }
+
+.job-links-sidebar.sidebar-collapsed .sidebar-add-chip{
+  display: flex;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  justify-self: center;
+  border-radius: 10px;
+}
+
 .job-links-sidebar.sidebar-collapsed .sidebar-rail-item{ justify-content: center; padding: 8px 0; }
 .job-links-sidebar.sidebar-collapsed .sidebar-section + .sidebar-section{
   border-top: 1px solid var(--line); padding-top: 10px;

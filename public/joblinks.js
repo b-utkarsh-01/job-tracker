@@ -140,6 +140,23 @@
         });
       }
     });
+
+    updateScrollAffordance();
+    setTimeout(updateScrollAffordance, 60);
+  }
+
+  function updateScrollAffordance() {
+    if (!rail) return;
+    const hasOverflowBottom = rail.scrollTop + rail.clientHeight < rail.scrollHeight - 6;
+    const hasOverflowTop = rail.scrollTop > 6;
+
+    rail.classList.toggle('has-overflow-bottom', hasOverflowBottom);
+    rail.classList.toggle('has-overflow-top', hasOverflowTop);
+
+    const hint = document.getElementById('sidebarScrollHint');
+    if (hint) {
+      hint.classList.toggle('visible', hasOverflowBottom);
+    }
   }
 
   function removeButtonHtml(link) {
@@ -392,7 +409,20 @@
       sidebar.classList.toggle('sidebar-collapsed', !expanded);
       railToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
       renderRail();
+      setTimeout(updateScrollAffordance, 240);
     });
+  }
+
+  const scrollHint = document.getElementById('sidebarScrollHint');
+  if (scrollHint && rail) {
+    scrollHint.addEventListener('click', function () {
+      rail.scrollBy({ top: 140, behavior: 'smooth' });
+    });
+  }
+
+  if (rail) {
+    rail.addEventListener('scroll', updateScrollAffordance, { passive: true });
+    window.addEventListener('resize', updateScrollAffordance, { passive: true });
   }
 
   if (addChip) {
