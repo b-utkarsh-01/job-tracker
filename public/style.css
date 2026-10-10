@@ -1364,3 +1364,81 @@ body:has(.job-links-sidebar.sidebar-expanded){ padding-left: 276px; }
   #stats{ grid-template-columns: repeat(3, 1fr); gap: 6px; }
   .notes{ max-width: 150px; font-size: 10px; }
 }
+
+/* =============================================
+   MAILS & NOTES: rich text + reorder + multi-select
+   ============================================= */
+
+/* Formatted text is shown on white "paper" in both themes, so what you see
+   is what Gmail gets when you paste. */
+.hub-body.hub-rich, .hub-editor-area.hub-rich{
+  white-space: normal; overflow-wrap: anywhere;
+  font: 13.5px/1.55 Arial, Helvetica, sans-serif; color: #222; background: #fff;
+}
+.hub-body.hub-rich{ padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; }
+.hub-rich ul, .hub-rich ol{ margin: 4px 0; padding-left: 24px; }
+.hub-rich p{ margin: 0 0 8px; }
+.hub-rich a{ color: #1a5fb4; }
+
+.hub-editor{
+  flex: 1; min-height: 240px; display: flex; flex-direction: column;
+  border: 1px solid var(--line); border-radius: 9px; overflow: hidden;
+}
+.hub-editor:focus-within{ outline: 2px solid var(--teal); outline-offset: 0; }
+.hub-editor-bar{
+  display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+  padding: 6px 8px; background: var(--bg); border-bottom: 1px solid var(--line);
+}
+.hub-editor-bar button{
+  min-width: 30px; height: 30px; padding: 0 8px; cursor: pointer;
+  border: 1px solid transparent; border-radius: 6px; background: none; color: var(--ink);
+  font: 14px Arial, Helvetica, sans-serif;
+}
+.hub-editor-bar button:hover{ background: var(--slate-soft); border-color: var(--line); }
+.hub-editor-bar select{ width: auto; height: 30px; padding: 0 6px; font-size: 12px; border-radius: 6px; }
+.hub-editor-bar input[type="color"]{ width: 34px; height: 30px; padding: 2px; border-radius: 6px; cursor: pointer; }
+.hub-editor-area{ flex: 1; min-height: 0; overflow-y: auto; padding: 12px 14px; outline: none; }
+.hub-editor-area:empty::before{ content: attr(data-placeholder); color: #9a9a9a; pointer-events: none; }
+
+/* Notes: hold / drag */
+.hub-note{
+  position: relative; touch-action: manipulation;
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+}
+.hub-note.is-held{ border-color: var(--teal); transform: scale(1.03); box-shadow: 0 8px 22px rgba(0,0,0,.18); }
+/* Lifted note follows the pointer (position is set from JS) */
+.hub-note.is-dragging{
+  z-index: 5; pointer-events: none;
+  border-color: var(--teal); background: var(--surface);
+  box-shadow: 0 14px 34px rgba(0,0,0,.28);
+}
+.notes-hub-list.is-reordering{ cursor: grabbing; }
+.notes-hub-list.is-reordering .hub-note{ transition: none; transform: none; }
+
+/* Notes: multi-select */
+.hub-note.is-selected{ border-color: var(--teal); box-shadow: 0 0 0 2px var(--teal); }
+.hub-note.is-selected::after{
+  content: '✓'; position: absolute; top: 8px; right: 8px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--teal); color: #fff; text-align: center;
+  font: 700 12px/22px Arial, sans-serif;
+}
+.notes-hub-list.is-selecting .hub-note:hover{ transform: none; }
+.notes-hub-list.is-selecting .hub-note .hub-actions{ visibility: hidden; }
+
+.hub-select-bar{ justify-content: flex-start; }
+.hub-select-bar span{ flex: 1; font-size: 12.5px; font-weight: 600; color: var(--teal); }
+.hub-select-bar button{
+  padding: 8px 14px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--surface); color: var(--ink); cursor: pointer;
+  font: 600 12px 'IBM Plex Mono', monospace;
+}
+.hub-select-bar button:hover{ background: var(--slate-soft); }
+.hub-select-bar .hub-sel-delete{ background: var(--coral); border-color: var(--coral); color: #fff; }
+.hub-select-bar .hub-sel-delete:hover{ background: var(--coral); opacity: 0.88; }
+
+/* Confirm dialog: blurred backdrop */
+#confirmModal{
+  background: rgba(0,0,0,.5);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+}

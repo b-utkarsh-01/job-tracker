@@ -413,8 +413,8 @@
               always shows what is due, even with this off.</p>
             <div class="notif-row">
               <div class="notif-status" id="notifStatus"></div>
-              <button id="settingsNotifBtn" class="notif-switch" type="button" role="switch"
-                aria-checked="false" aria-label="Browser reminders"></button>
+              <button id="settingsNotifBtn" class="notif-switch" type="button" role="switch" aria-checked="false"
+                aria-label="Browser reminders"></button>
             </div>
           </section>
         </div>
@@ -445,6 +445,12 @@
           </div>
           <button type="button" id="notesHubNew" class="notes-hub-new">+ New mail</button>
         </div>
+        <div class="notes-hub-toolbar hub-select-bar hidden" id="hubSelectBar">
+          <span id="hubSelCount">0 selected</span>
+          <button type="button" id="hubSelAll">Select all</button>
+          <button type="button" id="hubSelDelete" class="hub-sel-delete">Delete</button>
+          <button type="button" id="hubSelCancel">Cancel</button>
+        </div>
         <div id="notesHubList" class="notes-hub-list is-mails"></div>
       </div>
 
@@ -462,7 +468,27 @@
           </div>
 
           <label for="hubBody" id="hubBodyLabel">Mail content</label>
-          <textarea id="hubBody"></textarea>
+          <!-- <textarea id="hubBody"></textarea> -->
+          <div class="hub-editor">
+            <div class="hub-editor-bar" id="hubEditorBar">
+              <button type="button" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+              <button type="button" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+              <button type="button" data-cmd="underline" title="Underline (Ctrl+U)"><u>U</u></button>
+              <button type="button" data-cmd="insertOrderedList" title="Numbered list">1.</button>
+              <button type="button" data-cmd="insertUnorderedList" title="Bullet list">•</button>
+              <select id="hubFontSize" title="Text size">
+                <option value="">Size</option>
+                <option value="2">Small</option>
+                <option value="3">Normal</option>
+                <option value="5">Large</option>
+                <option value="6">Huge</option>
+              </select>
+              <input type="color" id="hubColor" value="#c13f2b" title="Text colour">
+              <button type="button" data-cmd="removeFormat" title="Clear formatting">T<small>x</small></button>
+            </div>
+            <div id="hubBody" class="hub-rich hub-editor-area" contenteditable="true" role="textbox"
+              aria-multiline="true" aria-labelledby="hubBodyLabel"></div>
+          </div>
 
           <div class="notes-hub-resume" id="hubResumeFields">
             <div class="notes-hub-resume-title">Resume used <span>(optional)</span></div>

@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const Snippet = require('../models/Snippet');
 
@@ -13,6 +14,10 @@ function isSafeUrl(str) {
 }
 
 const str = (v) => (typeof v === 'string' ? v : '');
+
+const validIds = (ids) => Array.isArray(ids)
+  ? ids.filter(id => typeof id === 'string' && mongoose.Types.ObjectId.isValid(id)).slice(0, 1000)
+  : [];
 
 router.get('/', async (req, res) => {
   try {
@@ -30,6 +35,7 @@ router.post('/', async (req, res) => {
       title: str(req.body.title),
       subject: str(req.body.subject),
       body: str(req.body.body),
+      bodyHtml: str(req.body.bodyHtml),
       resumeLink: str(req.body.resumeLink).trim(),
       resumeNote: str(req.body.resumeNote)
     };
@@ -44,6 +50,12 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Resume link must be an http/https link' });
     }
 
+    // New notes go on top, like a phone notes app
+    if (type === 'note') {
+      const top = await Snippet.findOne({ type: 'note' }).sort({ order: 1 }).select('order');
+      doc.order = (top ? (top.order || 0) : 0) - 1;
+    }
+
     const snippet = await Snippet.create(doc);
     res.status(201).json(snippet);
   } catch (err) {
@@ -51,10 +63,41 @@ router.post('/', async (req, res) => {
   }
 });
 
+// PATCH /reorder  body: { ids: [...] } -> saves the drag-and-drop order.
+// Must stay ABOVE '/:id' or Express treats "reorder" as an id.
+router.patch('/reorder', async (req, res) => {
+  try {
+    const ids = validIds(req.body.ids);
+    if (!ids.length) return res.status(400).json({ error: 'ids required' });
+    await Snippet.bulkWrite(ids.map((id, i) => ({
+      updateOne: {
+        filter: { _id: id },
+        update: { $set: { order: i } },
+        timestamps: false // moving a note should not change its "edited" date
+      }
+    })));
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /bulk-delete  body: { ids: [...] }
+router.post('/bulk-delete', async (req, res) => {
+  try {
+    const ids = validIds(req.body.ids);
+    if (!ids.length) return res.status(400).json({ error: 'ids required' });
+    const result = await Snippet.deleteMany({ _id: { $in: ids } });
+    res.json({ ok: true, deleted: result.deletedCount });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.patch('/:id', async (req, res) => {
   try {
     const updates = {};
-    ['title', 'subject', 'body', 'resumeLink', 'resumeNote'].forEach(f => {
+    ['title', 'subject', 'body', 'bodyHtml', 'resumeLink', 'resumeNote'].forEach(f => {
       if (req.body[f] !== undefined) updates[f] = str(req.body[f]);
     });
 
