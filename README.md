@@ -1,5 +1,11 @@
 # Job Application Tracker
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Render-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://demo-job-tracker.onrender.com/)
+
+**Live Demo:** https://demo-job-tracker.onrender.com/
+
+> Note: This is hosted on Render's free tier, so the first load may take 30-50 seconds while the server wakes up.
+
 A full-stack MERN-style web application for tracking job applications, managing follow-ups, and visualizing job search analytics. Built with Node.js, Express, MongoDB (via Mongoose), and a vanilla JavaScript frontend.
 
 **Live motivation:** When you are applying to 30+ companies across different platforms, it is easy to lose track of who responded, who needs a follow-up, and where you stand. This tool solves that with an auto-resetting 3-day follow-up cycle and a visual stats dashboard.
