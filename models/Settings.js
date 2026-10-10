@@ -5,7 +5,4 @@ const SettingsSchema = new mongoose.Schema({
   value: { type: mongoose.Schema.Types.Mixed, required: true }
 }, { timestamps: true });
 
-// Ensure one doc per key
-SettingsSchema.index({ key: 1 }, { unique: true });
-
 module.exports = mongoose.model('Settings', SettingsSchema);

@@ -293,6 +293,11 @@ kbd{
 /* =============================================
    CSV IMPORT DIALOG
    ============================================= */
+#csvImportModal{
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
 .csv-import-card{ width: min(480px, calc(100vw - 32px)); text-align: left; max-height: calc(100vh - 40px); overflow-y: auto; }
 .csv-import-head{
   display: flex; align-items: center; justify-content: space-between;
@@ -742,21 +747,83 @@ tr.bulk-selected td{ border-bottom-color: var(--teal-soft); }
   opacity: 0.85;
 }
 
-.cal-event-item{ display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
+.cal-event-item{
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 12px;
+  gap: 8px; flex-wrap: wrap;
+}
 .cal-event-item:last-child{ border-bottom: none; }
-.cal-event-company{ font-weight: 600; font-family: 'Space Grotesk', sans-serif; }
+.cal-event-company{
+  font-weight: 600; font-family: 'Space Grotesk', sans-serif;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+}
+.cal-company-jump{
+  cursor: pointer; text-decoration: underline; text-decoration-color: transparent;
+  transition: text-decoration-color 0.15s, color 0.15s;
+}
+.cal-company-jump:hover{ text-decoration-color: var(--teal); color: var(--teal); }
 
 .cal-section-label{ font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); margin: 12px 0 6px; }
 .cal-section-label:first-child{ margin-top: 0; }
 .cal-section-label.cal-section-followup{ color: var(--coral); font-weight: 700; }
-.cal-followup-item{ border-left: 2px solid var(--coral); padding-left: 8px; cursor: pointer; border-radius: 4px; }
-.cal-followup-item:hover{ background: var(--coral-soft); }
-.cal-followup-status{ color: var(--ink-soft); font-size: 10.5px; }
-.cal-task-item{ display: flex; align-items: center; gap: 10px; padding: 9px 2px; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+.cal-followup-item{ border-left: 2px solid var(--coral); padding-left: 8px; border-radius: 4px; }
+.cal-followup-item.is-overdue{ border-left-color: var(--coral); background: rgba(224, 86, 64, 0.04); }
+.cal-followup-status{ color: var(--ink-soft); font-size: 10.5px; margin-top: 2px; }
+
+/* Overdue banner & pill */
+.cal-overdue-banner{
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 8px 12px; margin-bottom: 12px; border-radius: 9px;
+  background: var(--amber-soft); border: 1px solid var(--amber);
+  flex-wrap: wrap;
+}
+.cal-overdue-banner-text{ display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cal-overdue-badge{
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
+  padding: 2px 7px; border-radius: 5px; background: var(--amber); color: #fff;
+  letter-spacing: 0.04em; text-transform: uppercase;
+}
+.cal-overdue-desc{ font-size: 11px; color: var(--ink); }
+.cal-shift-all-btn{
+  font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600;
+  padding: 5px 11px; border: none; border-radius: 7px;
+  background: var(--teal); color: #fff; cursor: pointer; white-space: nowrap;
+  transition: opacity 0.15s;
+}
+.cal-shift-all-btn:hover{ opacity: 0.9; }
+
+.cal-overdue-pill{
+  display: inline-flex; align-items: center;
+  font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; font-weight: 600;
+  padding: 1px 6px; border-radius: 4px;
+  background: var(--coral-soft); color: var(--coral);
+}
+
+/* Action buttons inside items */
+.cal-followup-actions, .cal-task-actions{ display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
+.cal-act-btn{
+  font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; font-weight: 600;
+  padding: 3px 8px; border-radius: 6px; border: 1px solid var(--line);
+  background: var(--surface); color: var(--ink); cursor: pointer; white-space: nowrap;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.cal-btn-done{ background: var(--teal-soft); color: var(--teal); border-color: var(--teal); }
+.cal-btn-done:hover{ background: var(--teal); color: #fff; }
+.cal-btn-snooze:hover{ background: var(--slate-soft); border-color: var(--ink-soft); }
+.cal-btn-shift{ background: var(--amber-soft); color: var(--amber); border-color: var(--amber); }
+.cal-btn-shift:hover{ background: var(--amber); color: #fff; }
+
+.cal-task-item{
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; padding: 8px 2px; border-bottom: 1px solid var(--line); font-size: 12.5px;
+  flex-wrap: wrap;
+}
 .cal-task-item:last-child{ border-bottom: none; }
+.cal-task-item.is-overdue{ background: rgba(224, 86, 64, 0.04); border-left: 2px solid var(--amber); padding-left: 6px; border-radius: 4px; }
+.cal-task-main{ flex: 1; display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; }
 .cal-task-item.done .cal-task-title{ text-decoration: line-through; color: var(--ink-soft); }
 .cal-task-checkbox{ width: 17px; height: 17px; flex-shrink: 0; margin: 0; padding: 0; accent-color: var(--teal); cursor: pointer; }
-.cal-task-title{ flex: 1; word-break: break-word; line-height: 1.4; }
+.cal-task-title{ word-break: break-word; line-height: 1.4; }
 .cal-task-del-btn{
   border: none; background: none; cursor: pointer; color: var(--ink-soft); font-size: 12px;
   padding: 4px 6px; flex-shrink: 0; opacity: 0.55; border-radius: 5px;
@@ -769,6 +836,13 @@ tr.bulk-selected td{ border-bottom-color: var(--teal-soft); }
   border-radius: 7px; background: var(--teal); color: #fff; cursor: pointer; white-space: nowrap;
 }
 .cal-add-task button:hover{ opacity: 0.9; }
+
+.cal-chip.chip-overdue{ border-left: 2px solid var(--coral); font-weight: 600; }
+.cal-dot.dot-overdue{ animation: pulse 2s infinite ease-in-out; }
+@keyframes pulse{
+  0%, 100%{ opacity: 1; transform: scale(1); }
+  50%{ opacity: 0.45; transform: scale(0.85); }
+}
 
 /* Calendar cells stretch too wide on desktop — cap the grid */
 @media (min-width: 681px){
@@ -818,7 +892,18 @@ tr.bulk-selected td{ border-bottom-color: var(--teal-soft); }
 /* =============================================
    SNOOZE MODAL
    ============================================= */
-.snooze-card{ width: min(360px, calc(100vw - 32px)); text-align: center; }
+#snoozeModal{
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.snooze-card{
+  width: min(360px, calc(100vw - 32px));
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
 .snooze-modal-head{ margin-bottom: 20px; }
 .snooze-modal-icon{ font-size: 32px; display: block; margin-bottom: 8px; }
 .snooze-modal-title{ font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }

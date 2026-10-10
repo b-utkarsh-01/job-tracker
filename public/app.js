@@ -651,6 +651,9 @@ async function loadApps() {
   render();
   renderNotificationPanel();
   checkFollowupNotifications();
+  if (typeof autoShiftOverdueToToday === 'function') {
+    await autoShiftOverdueToToday();
+  }
   renderCalendar();      // keeps the "Follow-ups due" chips in sync
   renderWeeklyGoal();
   renderKanban();
@@ -2158,6 +2161,61 @@ let calendarTasks = [];
 let calCursor = new Date(); // month currently shown
 let calSelectedDate = ymd(new Date());
 
+let isAutoShifting = false;
+
+async function autoShiftOverdueToToday() {
+  if (isAutoShifting) return;
+  const todayStr = ymd(new Date());
+  const todayAtMidnight = new Date();
+  todayAtMidnight.setHours(0, 0, 0, 0);
+
+  const overdueApps = (apps || []).filter(a =>
+    a.nextFollowupDate &&
+    !['Rejected', 'Offer'].includes(a.status) &&
+    ymd(new Date(a.nextFollowupDate)) < todayStr
+  );
+
+  const overdueTasks = (calendarTasks || []).filter(t =>
+    t.date && !t.done && ymd(new Date(t.date)) < todayStr
+  );
+
+  const count = overdueApps.length + overdueTasks.length;
+  if (!count) return;
+
+  isAutoShifting = true;
+  try {
+    const ops = [
+      ...overdueApps.map(a => fetch(`${API}/${a._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nextFollowupDate: todayAtMidnight })
+      })),
+      ...overdueTasks.map(t => fetch(`/api/tasks/${t._id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date: todayStr })
+      }))
+    ];
+
+    await Promise.all(ops);
+
+    overdueApps.forEach(a => {
+      a.nextFollowupDate = todayAtMidnight;
+      a.autoShifted = true;
+    });
+    overdueTasks.forEach(t => {
+      t.date = todayStr;
+      t.autoShifted = true;
+    });
+
+    showToast(`⚡ Auto-shifted ${count} missed reminder${count > 1 ? 's' : ''} to Today!`, 'success');
+  } catch (err) {
+    console.warn('Auto-shift error:', err);
+  } finally {
+    isAutoShifting = false;
+  }
+}
+
 async function loadCalendar() {
   try {
     const res = await fetch(API + '/calendar');
@@ -2169,7 +2227,16 @@ async function loadCalendar() {
     calendarTasks = res2.ok ? await res2.json() : [];
   } catch (e) { calendarTasks = []; }
 
+  // Auto-shift missed tasks & follow-ups to Today so they are never lost
+  await autoShiftOverdueToToday();
+
   renderCalendar();
+}
+
+function formatCalDate(d) {
+  if (!d) return '';
+  const dt = new Date(d);
+  return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 function eventsOnDate(dateStr) {
@@ -2177,17 +2244,65 @@ function eventsOnDate(dateStr) {
 }
 
 function tasksOnDate(dateStr) {
-  return calendarTasks.filter(t => t.date && ymd(new Date(t.date)) === dateStr);
+  const todayStr = ymd(new Date());
+  if (dateStr === todayStr) {
+    // When viewing Today: include tasks for today PLUS uncompleted tasks from past days
+    return calendarTasks.filter(t =>
+      t.date && (
+        ymd(new Date(t.date)) === todayStr ||
+        (!t.done && ymd(new Date(t.date)) < todayStr)
+      )
+    ).map(t => ({
+      ...t,
+      isOverdue: !t.done && ymd(new Date(t.date)) < todayStr
+    }));
+  }
+  return calendarTasks.filter(t => t.date && ymd(new Date(t.date)) === dateStr).map(t => ({
+    ...t,
+    isOverdue: !t.done && ymd(new Date(t.date)) < todayStr
+  }));
 }
 
-// Follow-up dates come straight from the live applications list so the
-// calendar always matches what's actually due. Rejected/Offer are excluded.
+// Follow-up dates come straight from live applications.
+// When viewing Today, any follow-up from the past that was missed is carried forward
+// so it doesn't get lost or forgotten.
 function followupsOnDate(dateStr) {
+  const todayStr = ymd(new Date());
+  if (dateStr === todayStr) {
+    return apps.filter(a =>
+      a.nextFollowupDate &&
+      !['Rejected', 'Offer'].includes(a.status) &&
+      ymd(new Date(a.nextFollowupDate)) <= todayStr
+    ).map(a => ({
+      ...a,
+      isOverdue: ymd(new Date(a.nextFollowupDate)) < todayStr
+    }));
+  }
   return apps.filter(a =>
     a.nextFollowupDate &&
     !['Rejected', 'Offer'].includes(a.status) &&
     ymd(new Date(a.nextFollowupDate)) === dateStr
+  ).map(a => ({
+    ...a,
+    isOverdue: ymd(new Date(a.nextFollowupDate)) < todayStr
+  }));
+}
+
+function getOverdueSummary() {
+  const todayStr = ymd(new Date());
+  const pastApps = apps.filter(a =>
+    a.nextFollowupDate &&
+    !['Rejected', 'Offer'].includes(a.status) &&
+    ymd(new Date(a.nextFollowupDate)) < todayStr
   );
+  const pastTasks = calendarTasks.filter(t =>
+    t.date && !t.done && ymd(new Date(t.date)) < todayStr
+  );
+  return {
+    apps: pastApps,
+    tasks: pastTasks,
+    total: pastApps.length + pastTasks.length
+  };
 }
 
 function renderCalendar() {
@@ -2221,9 +2336,18 @@ function renderCalendar() {
     const dayTasks = tasksOnDate(dateStr);
 
     const allItems = [
-      ...dayFollowups.map(a => ({ text: `Follow up: ${a.company}`, cls: 'chip-followup' })),
-      ...dayEvents.map(ev => ({ text: `${ev.company}${ev.eventLabel ? ' · ' + ev.eventLabel : ''}`, cls: 'chip-event' })),
-      ...dayTasks.map(t => ({ text: t.title, cls: 'chip-task' + (t.done ? ' chip-done' : '') }))
+      ...dayFollowups.map(a => ({
+        text: a.isOverdue ? `Overdue: ${a.company}` : `Follow up: ${a.company}`,
+        cls: 'chip-followup' + (a.isOverdue ? ' chip-overdue' : '')
+      })),
+      ...dayEvents.map(ev => ({
+        text: `${ev.company}${ev.eventLabel ? ' · ' + ev.eventLabel : ''}`,
+        cls: 'chip-event'
+      })),
+      ...dayTasks.map(t => ({
+        text: t.isOverdue ? `Missed: ${t.title}` : t.title,
+        cls: 'chip-task' + (t.done ? ' chip-done' : '') + (t.isOverdue ? ' chip-overdue' : '')
+      }))
     ];
     const visible = allItems.slice(0, 2);
     const extra = allItems.length - visible.length;
@@ -2232,9 +2356,9 @@ function renderCalendar() {
       + (extra > 0 ? `<div class="cal-chip-more">+${extra} more</div>` : '');
 
     const dotsHtml = [
-      dayFollowups.length ? '<span class="cal-dot dot-followup" title="Follow-up due"></span>' : '',
+      dayFollowups.length ? '<span class="cal-dot dot-followup' + (dayFollowups.some(a => a.isOverdue) ? ' dot-overdue' : '') + '" title="Follow-up due"></span>' : '',
       dayEvents.length ? '<span class="cal-dot dot-event" title="Event / Interview"></span>' : '',
-      dayTasks.length ? '<span class="cal-dot dot-task" title="Reminder / To-do"></span>' : ''
+      dayTasks.length ? '<span class="cal-dot dot-task' + (dayTasks.some(t => t.isOverdue) ? ' dot-overdue' : '') + '" title="Reminder / To-do"></span>' : ''
     ].join('');
 
     html += `
@@ -2269,14 +2393,16 @@ function renderCalendarDayEvents() {
     return;
   }
 
+  const todayStr = ymd(new Date());
+  const isToday = calSelectedDate === todayStr;
   const dayEvents = eventsOnDate(calSelectedDate);
   const dayTasks = tasksOnDate(calSelectedDate);
   const dayFollowups = followupsOnDate(calSelectedDate);
+  const overdueSummary = getOverdueSummary();
 
   const dateParts = calSelectedDate.split('-');
   const dateObj = new Date(Number(dateParts[0]), Number(dateParts[1]) - 1, Number(dateParts[2]));
   const dateFmt = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-  const isToday = calSelectedDate === ymd(new Date());
 
   let html = `
     <div class="cal-day-events-head">
@@ -2284,6 +2410,19 @@ function renderCalendarDayEvents() {
       ${isToday ? '<span class="cal-day-events-badge">Today</span>' : ''}
     </div>
   `;
+
+  // If there are missed/overdue items from past days and viewing Today, show a smart rollover banner
+  if (isToday && overdueSummary.total > 0) {
+    html += `
+      <div class="cal-overdue-banner">
+        <div class="cal-overdue-banner-text">
+          <span class="cal-overdue-badge">⚡ ${overdueSummary.total} Overdue</span>
+          <span class="cal-overdue-desc">Missed from earlier dates — carried forward to Today</span>
+        </div>
+        <button type="button" class="cal-shift-all-btn" id="calShiftAllBtn">Shift all to Today ↗</button>
+      </div>
+    `;
+  }
 
   const hasAnyItems = dayFollowups.length > 0 || dayEvents.length > 0 || dayTasks.length > 0;
 
@@ -2294,10 +2433,26 @@ function renderCalendarDayEvents() {
   if (dayFollowups.length) {
     html += `<div class="cal-section-label cal-section-followup">Follow-ups due</div>`;
     html += dayFollowups.map(a => `
-      <div class="cal-event-item cal-followup-item" data-jump-company="${esc(a.company)}" title="View in Applications list">
-        <div>
-          <div class="cal-event-company">${esc(a.company)}${a.role ? ' · ' + esc(a.role) : ''}</div>
-          <div class="cal-followup-status">${esc(a.status)}</div>
+      <div class="cal-event-item cal-followup-item ${a.isOverdue ? 'is-overdue' : ''}">
+        <div class="cal-followup-main">
+          <div class="cal-event-company">
+            <span class="cal-company-jump" data-jump-company="${esc(a.company)}" title="View application details">${esc(a.company)}</span>${a.role ? ' · ' + esc(a.role) : ''}
+            ${a.isOverdue ? `<span class="cal-overdue-pill">Overdue · was ${formatCalDate(a.nextFollowupDate)}</span>` : ''}
+          </div>
+          <div class="cal-followup-status">Status: ${esc(a.status)}${a.followupCount ? ` · Sent ${a.followupCount} mail${a.followupCount > 1 ? 's' : ''}` : ''}</div>
+        </div>
+        <div class="cal-followup-actions">
+          <button type="button" class="cal-act-btn cal-btn-done" data-cal-app-done="${a._id}" title="Mark followed up (schedules next in 3 days)">
+            ✓ Done
+          </button>
+          <button type="button" class="cal-act-btn cal-btn-snooze" data-cal-app-snooze="${a._id}" title="Snooze for 3 days">
+            +3d
+          </button>
+          ${a.isOverdue ? `
+            <button type="button" class="cal-act-btn cal-btn-shift" data-cal-app-shift="${a._id}" title="Reschedule next follow-up to Today">
+              Shift to Today ↗
+            </button>
+          ` : ''}
         </div>
       </div>
     `).join('');
@@ -2318,10 +2473,20 @@ function renderCalendarDayEvents() {
   if (dayTasks.length) {
     html += `<div class="cal-section-label">Reminders / to-dos</div>`;
     html += dayTasks.map(t => `
-      <div class="cal-task-item ${t.done ? 'done' : ''}">
+      <div class="cal-task-item ${t.done ? 'done' : ''} ${t.isOverdue ? 'is-overdue' : ''}">
         <input class="cal-task-checkbox" type="checkbox" data-task-toggle="${t._id}" ${t.done ? 'checked' : ''}>
-        <span class="cal-task-title">${esc(t.title)}</span>
-        <button class="cal-task-del-btn" data-task-del="${t._id}" title="Delete">✕</button>
+        <div class="cal-task-main">
+          <span class="cal-task-title">${esc(t.title)}</span>
+          ${t.isOverdue ? `<span class="cal-overdue-pill">Missed · was ${formatCalDate(t.date)}</span>` : ''}
+        </div>
+        <div class="cal-task-actions">
+          ${t.isOverdue ? `
+            <button type="button" class="cal-act-btn cal-btn-shift" data-cal-task-shift="${t._id}" title="Shift reminder to Today">
+              Shift to Today ↗
+            </button>
+          ` : ''}
+          <button class="cal-task-del-btn" data-task-del="${t._id}" title="Delete">✕</button>
+        </div>
       </div>
     `).join('');
   }
@@ -2338,6 +2503,147 @@ function renderCalendarDayEvents() {
   wrap.querySelectorAll('[data-jump-company]').forEach(item => {
     item.onclick = () => jumpToCompany(item.dataset.jumpCompany);
   });
+
+  // Follow-up actions
+  wrap.querySelectorAll('[data-cal-app-done]').forEach(btn => {
+    btn.onclick = async (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.calAppDone;
+      const app = apps.find(a => a._id === id);
+      btn.disabled = true;
+      try {
+        await fetch(`${API}/${id}/followup`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ answered: true })
+        });
+        showToast(`Followed up with ${app ? app.company : 'company'}! Next check in 3 days 🎉`, 'success');
+        await loadApps();
+        await loadStats();
+        await loadCalendar();
+      } catch (err) {
+        showToast('Could not record follow-up', 'error');
+        btn.disabled = false;
+      }
+    };
+  });
+
+  wrap.querySelectorAll('[data-cal-app-snooze]').forEach(btn => {
+    btn.onclick = async (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.calAppSnooze;
+      const app = apps.find(a => a._id === id);
+      btn.disabled = true;
+      try {
+        await fetch(`${API}/${id}/followup`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ answered: false, days: 3 })
+        });
+        showToast(`Follow-up with ${app ? app.company : 'company'} snoozed for 3 days`, 'success');
+        await loadApps();
+        await loadStats();
+        await loadCalendar();
+      } catch (err) {
+        showToast('Could not snooze follow-up', 'error');
+        btn.disabled = false;
+      }
+    };
+  });
+
+  wrap.querySelectorAll('[data-cal-app-shift]').forEach(btn => {
+    btn.onclick = async (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.calAppShift;
+      const app = apps.find(a => a._id === id);
+      btn.disabled = true;
+      try {
+        const todayAtMidnight = new Date();
+        todayAtMidnight.setHours(0, 0, 0, 0);
+        await fetch(`${API}/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ nextFollowupDate: todayAtMidnight })
+        });
+        showToast(`Follow-up with ${app ? app.company : 'company'} shifted to Today! 📅`, 'success');
+        await loadApps();
+        await loadCalendar();
+      } catch (err) {
+        showToast('Could not shift follow-up', 'error');
+        btn.disabled = false;
+      }
+    };
+  });
+
+  // Task actions
+  wrap.querySelectorAll('[data-cal-task-shift]').forEach(btn => {
+    btn.onclick = async (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.calTaskShift;
+      const task = calendarTasks.find(t => t._id === id);
+      btn.disabled = true;
+      try {
+        await fetch(`/api/tasks/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date: todayStr })
+        });
+        showToast(`Reminder "${task ? task.title : ''}" shifted to Today! 📅`, 'success');
+        await loadCalendar();
+      } catch (err) {
+        showToast('Could not shift reminder', 'error');
+        btn.disabled = false;
+      }
+    };
+  });
+
+  // Shift All Overdue button
+  const shiftAllBtn = document.getElementById('calShiftAllBtn');
+  if (shiftAllBtn) {
+    shiftAllBtn.onclick = async () => {
+      shiftAllBtn.disabled = true;
+      shiftAllBtn.textContent = 'Shifting...';
+      try {
+        const todayAtMidnight = new Date();
+        todayAtMidnight.setHours(0, 0, 0, 0);
+
+        const pastApps = apps.filter(a =>
+          a.nextFollowupDate &&
+          !['Rejected', 'Offer'].includes(a.status) &&
+          ymd(new Date(a.nextFollowupDate)) < todayStr
+        );
+
+        const pastTasks = calendarTasks.filter(t =>
+          t.date && !t.done && ymd(new Date(t.date)) < todayStr
+        );
+
+        const count = pastApps.length + pastTasks.length;
+        if (!count) return;
+
+        const ops = [
+          ...pastApps.map(a => fetch(`${API}/${a._id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nextFollowupDate: todayAtMidnight })
+          })),
+          ...pastTasks.map(t => fetch(`/api/tasks/${t._id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ date: todayStr })
+          }))
+        ];
+
+        await Promise.all(ops);
+        showToast(`Shifted ${count} missed item${count > 1 ? 's' : ''} to Today! 📅`, 'success');
+        await loadApps();
+        await loadCalendar();
+      } catch (err) {
+        showToast('Could not shift items', 'error');
+        shiftAllBtn.disabled = false;
+        shiftAllBtn.textContent = 'Shift all to Today ↗';
+      }
+    };
+  }
 
   wrap.querySelectorAll('[data-task-toggle]').forEach(cb => {
     cb.onchange = async () => {

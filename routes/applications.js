@@ -206,7 +206,7 @@ router.patch('/:id', async (req, res) => {
   try {
     const allowed = [
       'company', 'role', 'source', 'status', 'notes', 'dateApplied', 'portalLink',
-      'priority', 'eventDate', 'eventLabel', 'mailCount', 'lastMailedAt'
+      'priority', 'eventDate', 'eventLabel', 'mailCount', 'lastMailedAt', 'nextFollowupDate'
     ];
     const updates = {};
     allowed.forEach(f => { if (req.body[f] !== undefined) updates[f] = req.body[f]; });
