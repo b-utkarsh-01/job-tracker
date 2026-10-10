@@ -1375,6 +1375,8 @@ body:has(.job-links-sidebar.sidebar-expanded){ padding-left: 276px; }
   .cal-add-task{ gap: 6px; }
   .cal-add-task input{ font-size: 13px; padding: 9px 10px; }
   .cal-add-task button{ padding: 9px 14px; font-size: 12px; }
+
+  /* Applications table -> stacked cards.
      Scoped to #tableWrap so the CSV sample table stays a real table. */
   #tableWrap table, #tableWrap thead, #tableWrap tbody,
   #tableWrap th, #tableWrap td, #tableWrap tr{ display: block; width: 100%; }
