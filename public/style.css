@@ -734,6 +734,14 @@ tr.bulk-selected td{ border-bottom-color: var(--teal-soft); }
   border-radius: 999px; text-transform: uppercase; letter-spacing: 0.05em;
 }
 
+.cal-empty-day{
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  padding: 10px 0 6px;
+  font-style: italic;
+  opacity: 0.85;
+}
+
 .cal-event-item{ display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
 .cal-event-item:last-child{ border-bottom: none; }
 .cal-event-company{ font-weight: 600; font-family: 'Space Grotesk', sans-serif; }

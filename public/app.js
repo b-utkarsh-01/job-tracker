@@ -2285,8 +2285,14 @@ function renderCalendarDayEvents() {
     </div>
   `;
 
-  html += `<div class="cal-section-label cal-section-followup">Follow-ups due</div>`;
+  const hasAnyItems = dayFollowups.length > 0 || dayEvents.length > 0 || dayTasks.length > 0;
+
+  if (!hasAnyItems) {
+    html += `<div class="cal-empty-day">No follow-ups or events for this date.</div>`;
+  }
+
   if (dayFollowups.length) {
+    html += `<div class="cal-section-label cal-section-followup">Follow-ups due</div>`;
     html += dayFollowups.map(a => `
       <div class="cal-event-item cal-followup-item" data-jump-company="${esc(a.company)}" title="View in Applications list">
         <div>
@@ -2295,12 +2301,10 @@ function renderCalendarDayEvents() {
         </div>
       </div>
     `).join('');
-  } else {
-    html += muted(`None due on ${calSelectedDate}.`);
   }
 
-  html += `<div class="cal-section-label">Application events</div>`;
   if (dayEvents.length) {
+    html += `<div class="cal-section-label">Application events</div>`;
     html += dayEvents.map(ev => `
       <div class="cal-event-item">
         <div>
@@ -2309,12 +2313,10 @@ function renderCalendarDayEvents() {
         </div>
       </div>
     `).join('');
-  } else {
-    html += muted(`None on ${calSelectedDate}.`);
   }
 
-  html += `<div class="cal-section-label">Reminders / to-dos</div>`;
   if (dayTasks.length) {
+    html += `<div class="cal-section-label">Reminders / to-dos</div>`;
     html += dayTasks.map(t => `
       <div class="cal-task-item ${t.done ? 'done' : ''}">
         <input class="cal-task-checkbox" type="checkbox" data-task-toggle="${t._id}" ${t.done ? 'checked' : ''}>
@@ -2322,13 +2324,11 @@ function renderCalendarDayEvents() {
         <button class="cal-task-del-btn" data-task-del="${t._id}" title="Delete">✕</button>
       </div>
     `).join('');
-  } else {
-    html += muted('No reminders yet.');
   }
 
   html += `
     <div class="cal-add-task">
-      <input type="text" id="calNewTask" placeholder="e.g. Fill Google form for Stripe">
+      <input type="text" id="calNewTask" placeholder="Add reminder / to-do...">
       <button id="calAddTaskBtn" type="button">+ Add</button>
     </div>
   `;
