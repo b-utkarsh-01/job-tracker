@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const STATUS_VALUES = [
   'Applied',
+  'Mail Not Found',
   'Under Consideration',
   'OA/Task Pending',
   'Interview Scheduled',
@@ -100,6 +101,10 @@ const ApplicationSchema = new mongoose.Schema({
   notes: { type: String, trim: true },
   portalLink: { type: String, trim: true }, // candidate/application status portal URL
   priority: { type: Boolean, default: false }, // starred / dream company
+
+  // Cold mail tracking: how many mails sent so far + when the last one went
+  mailCount: { type: Number, default: 0, min: 0 },
+  lastMailedAt: { type: Date, default: null },
 
   // Optional calendar event: an interview slot or an OA/task deadline
   eventDate: { type: Date, default: null },

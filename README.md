@@ -4,6 +4,46 @@ A full-stack MERN-style web application for tracking job applications, managing 
 
 **Live motivation:** When you are applying to 30+ companies across different platforms, it is easy to lose track of who responded, who needs a follow-up, and where you stand. This tool solves that with an auto-resetting 3-day follow-up cycle and a visual stats dashboard.
 
+## Screenshots
+
+> The live app is behind a login, so here is a quick visual tour.
+
+### Dashboard
+
+| Dark mode | Light mode |
+|---|---|
+| ![Dashboard in dark mode](./screenshots/overview-dark.png) | ![Dashboard in light mode](screenshots/overview-light.png) |
+
+### Pipeline (Kanban board)
+
+Drag applications between stages: Applied, Under Consideration, OA/Task Pending, Interview Scheduled, and more.
+
+![Pipeline board](screenshots/pipeline.png)
+
+### Stats and Charts
+
+Status breakdown, source breakdown, weekly activity, conversion funnel, and interview rate by source.
+
+![Stats dashboard](screenshots/stats.png)
+
+### Calendar
+
+Follow-up due dates, interview/OA events, and to-do reminders in one monthly view.
+
+![Calendar view](screenshots/calendar.png)
+
+### Applications Table
+
+Search, filter by status, inline status editing, and CSV import/export.
+
+![Applications table](screenshots/applications.png)
+
+### Adding Data
+
+| Add application | Add job link |
+|---|---|
+| ![Add application form](screenshots/add-application.png) | ![Add job link modal](screenshots/add-job-link.png) |
+
 ---
 
 ## Table of Contents
@@ -50,7 +90,7 @@ A full-stack MERN-style web application for tracking job applications, managing 
 ┌─────────────────────────────────────────────────────────┐
 │                      CLIENT (Browser)                   │
 │                                                         │
-│  index.html  ──►  app.js  ──►  Chart.js (graphs)       │
+│  index.html  ──►  app.js  ──►  Chart.js (graphs)        │
 │       │              │                                  │
 │       │              ├── fetch() to REST API            │
 │       │              ├── localStorage (theme, notify)   │
@@ -62,7 +102,7 @@ A full-stack MERN-style web application for tracking job applications, managing 
                         │  HTTP (JSON)
                         ▼
 ┌─────────────────────────────────────────────────────────┐
-│                    SERVER (Express)                      │
+│                    SERVER (Express)                     │
 │                                                         │
 │  server.js                                              │
 │    ├── Loads .env via dotenv                            │
@@ -72,7 +112,7 @@ A full-stack MERN-style web application for tracking job applications, managing 
 │    │     /api/applications  →  routes/applications.js   │
 │    │     /api/tasks         →  routes/tasks.js          │
 │    │     /api/settings      →  routes/settings.js       │
-│    ├── Rate limiting middleware (in-memory)              │
+│    ├── Rate limiting middleware (in-memory)             │
 │    └── Runs one-time follow-up date normalization       │
 │                                                         │
 │  routes/applications.js                                 │
@@ -93,7 +133,7 @@ A full-stack MERN-style web application for tracking job applications, managing 
                         │  Mongoose driver
                         ▼
 ┌─────────────────────────────────────────────────────────┐
-│                  MongoDB Atlas (Cloud)                   │
+│                  MongoDB Atlas (Cloud)                  │
 │                                                         │
 │  Database: job_tracker                                  │
 │    ├── applications collection                          │

@@ -83,8 +83,11 @@ router.get('/stats', async (req, res) => {
 
     // Average response time: days between applying and the last status
     // change (updatedAt), for applications that have moved past "Applied".
+    // "Mail Not Found" is not a response from the company, so it is skipped.
     // Grouped by company so slow/fast responders are visible.
-    const responded = apps.filter(a => a.status !== 'Applied' && a.dateApplied && a.updatedAt);
+    const responded = apps.filter(a =>
+      !['Applied', 'Mail Not Found'].includes(a.status) && a.dateApplied && a.updatedAt
+    );
     const byCompanyDays = {};
     responded.forEach(a => {
       const days = Math.max(0, Math.round((new Date(a.updatedAt) - new Date(a.dateApplied)) / (1000 * 60 * 60 * 24)));
@@ -153,6 +156,8 @@ router.post('/', async (req, res) => {
       portalLink,
       status: req.body.status || 'Applied',
       priority: !!req.body.priority,
+      mailCount: Math.max(0, Math.floor(Number(req.body.mailCount) || 0)),
+      lastMailedAt: req.body.lastMailedAt || null,
       eventDate: req.body.eventDate || null,
       eventLabel: req.body.eventLabel || ''
     });
@@ -199,12 +204,19 @@ router.patch('/batch/order', async (req, res) => {
 // PATCH update status / notes / role etc.
 router.patch('/:id', async (req, res) => {
   try {
-    const allowed = ['company', 'role', 'source', 'status', 'notes', 'dateApplied', 'portalLink', 'priority', 'eventDate', 'eventLabel'];
+    const allowed = [
+      'company', 'role', 'source', 'status', 'notes', 'dateApplied', 'portalLink',
+      'priority', 'eventDate', 'eventLabel', 'mailCount', 'lastMailedAt'
+    ];
     const updates = {};
     allowed.forEach(f => { if (req.body[f] !== undefined) updates[f] = req.body[f]; });
     // Sanitize portalLink to prevent javascript: URIs
     if (updates.portalLink && !isSafeUrl(updates.portalLink)) {
       updates.portalLink = '';
+    }
+    // Mail count must be a non-negative whole number
+    if (updates.mailCount !== undefined) {
+      updates.mailCount = Math.max(0, Math.floor(Number(updates.mailCount) || 0));
     }
     const app = await Application.findByIdAndUpdate(req.params.id, updates, { new: true });
     if (!app) return res.status(404).json({ error: 'Not found' });

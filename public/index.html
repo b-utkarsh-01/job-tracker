@@ -1,512 +1,675 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Application Tracker</title>
-<meta name="theme-color" content="#0F6B5C">
-<link rel="manifest" href="manifest.json">
-<link rel="icon" href="assets/icon-192.png">
-<link rel="apple-touch-icon" href="assets/icon-192.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Application Tracker</title>
+  <meta name="theme-color" content="#0F6B5C">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="assets/icon-192.png">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-<!-- ===================== JOB-SITE SIDEBAR ===================== -->
-<aside class="job-links-sidebar sidebar-collapsed" id="jobLinksSidebar">
-  <div class="sidebar-rail" id="sidebarRail">
-    <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Toggle job links sidebar" aria-expanded="false" title="Toggle sidebar">
-      <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="15 18 9 12 15 6"/>
-      </svg>
-    </button>
-    <div class="sidebar-brand">
-      <span class="sidebar-brand-text">Job links</span>
-    </div>
-    <div class="sidebar-links" id="sidebarLinks"></div>
-    <button class="sidebar-add-chip" id="sidebarAddChip" type="button" title="Add job link">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-        <line x1="12" y1="5" x2="12" y2="19"/>
-        <line x1="5" y1="12" x2="19" y2="12"/>
-      </svg>
-      <span>Add link</span>
-    </button>
-  </div>
-</aside>
-
-<!-- Add / edit link modal -->
-<div class="shortcut-help hidden" id="linkModal">
-  <div class="link-modal-card" role="dialog" aria-modal="true" aria-labelledby="linkModalTitle">
-    <div class="link-modal-head">
-      <strong id="linkModalTitle">Add job link</strong>
-      <button class="shortcut-close" id="linkModalClose" type="button" aria-label="Close">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"/>
-          <line x1="6" y1="6" x2="18" y2="18"/>
+  <!-- ===================== JOB-SITE SIDEBAR ===================== -->
+  <aside class="job-links-sidebar sidebar-collapsed" id="jobLinksSidebar">
+    <div class="sidebar-rail" id="sidebarRail">
+      <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Toggle job links sidebar"
+        aria-expanded="false" title="Toggle sidebar">
+        <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6" />
         </svg>
       </button>
+      <div class="sidebar-brand">
+        <span class="sidebar-brand-text">Job links</span>
+      </div>
+      <div class="sidebar-links" id="sidebarLinks"></div>
+      <button class="sidebar-add-chip" id="sidebarAddChip" type="button" title="Add job link">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+          stroke-linecap="round">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        <span>Add link</span>
+      </button>
     </div>
+  </aside>
 
-    <div class="link-modal-preview">
-      <div class="sidebar-rail-icon" id="linkPreviewIcon"></div>
-      <div class="link-preview-text">
-        <div class="link-preview-name" id="linkPreviewName">New link</div>
-        <div class="link-preview-host" id="linkPreviewHost">Icon is picked automatically from the URL</div>
-      </div>
-    </div>
-
-    <div class="link-modal-body">
-      <div class="link-field">
-        <label for="linkUrlInput">Site URL</label>
-        <input id="linkUrlInput" type="url" inputmode="url" autocomplete="off" placeholder="cutshort.io/jobs">
-      </div>
-      <div class="link-field">
-        <label for="linkNameInput">Site name</label>
-        <input id="linkNameInput" type="text" autocomplete="off" placeholder="e.g. Cutshort">
-      </div>
-      <div class="link-field">
-        <label for="linkSectionSelect">Section</label>
-        <select id="linkSectionSelect">
-          <option value="S">S · Best reply rate</option>
-          <option value="A">A · Strong</option>
-          <option value="B">B · Fresher / niche</option>
-          <option value="C">C · Also try</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="link-modal-foot">
-      <button class="confirm-btn confirm-cancel" id="linkModalCancel" type="button">Cancel</button>
-      <button class="confirm-btn confirm-add" id="linkModalSave" type="button">Save link</button>
-    </div>
-  </div>
-</div>
-
-<div class="wrap">
-  <header>
-    <div class="header-row">
-      <div>
-        <div class="eyebrow">Pipeline</div>
-        <h1>Application Tracker</h1>
-        <div class="sub">Every company, every follow-up, in one place.</div>
-      </div>
-      <div class="header-actions">
-        <button id="installBtn" class="icon-toggle install-btn hidden" type="button" title="Install app" aria-label="Install app">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 3v12"></path>
-            <path d="M7 10l5 5 5-5"></path>
-            <path d="M5 19h14"></path>
+  <!-- Add / edit link modal -->
+  <div class="shortcut-help hidden" id="linkModal">
+    <div class="link-modal-card" role="dialog" aria-modal="true" aria-labelledby="linkModalTitle">
+      <div class="link-modal-head">
+        <strong id="linkModalTitle">Add job link</strong>
+        <button class="shortcut-close" id="linkModalClose" type="button" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
-        <div class="bell-wrap">
-          <button id="notificationBell" class="icon-toggle notification-bell" type="button" title="Follow-up reminders" aria-label="Follow-up reminders">
-            🔔<span id="notificationBadge" class="notification-badge hidden">0</span>
-          </button>
-          <div id="notificationPanel" class="notification-panel hidden" aria-live="polite"></div>
+      </div>
+
+      <div class="link-modal-preview">
+        <div class="sidebar-rail-icon" id="linkPreviewIcon"></div>
+        <div class="link-preview-text">
+          <div class="link-preview-name" id="linkPreviewName">New link</div>
+          <div class="link-preview-host" id="linkPreviewHost">Icon is picked automatically from the URL</div>
         </div>
-        <button id="darkToggle" class="dark-toggle" type="button" title="Toggle dark mode">🌙</button>
+      </div>
+
+      <div class="link-modal-body">
+        <div class="link-field">
+          <label for="linkUrlInput">Site URL</label>
+          <input id="linkUrlInput" type="url" inputmode="url" autocomplete="off" placeholder="cutshort.io/jobs">
+        </div>
+        <div class="link-field">
+          <label for="linkNameInput">Site name</label>
+          <input id="linkNameInput" type="text" autocomplete="off" placeholder="e.g. Cutshort">
+        </div>
+        <div class="link-field">
+          <label for="linkSectionSelect">Section</label>
+          <select id="linkSectionSelect">
+            <option value="S">S · Best reply rate</option>
+            <option value="A">A · Strong</option>
+            <option value="B">B · Fresher / niche</option>
+            <option value="C">C · Also try</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="link-modal-foot">
+        <button class="confirm-btn confirm-cancel" id="linkModalCancel" type="button">Cancel</button>
+        <button class="confirm-btn confirm-add" id="linkModalSave" type="button">Save link</button>
       </div>
     </div>
-  </header>
-
-  <div class="quick-nav" id="quickNav">
-    <a href="#stats" class="quick-nav-link">Overview</a>
-    <a href="#kanbanPanel" class="quick-nav-link">Pipeline</a>
-    <a href="#chartsPanel" class="quick-nav-link">Charts</a>
-    <a href="#calendarPanel" class="quick-nav-link">Calendar</a>
-    <a href="#applicationsPanel" class="quick-nav-link">Applications</a>
   </div>
 
-  <div class="stats" id="stats"></div>
-
-  <div class="panel" id="weeklyGoalPanel">
-    <div class="goal-header">
-      <div class="goal-header-left">
-        <h2>Weekly Goal</h2>
-      </div>
-      <button id="editGoalBtn" type="button" class="goal-edit-btn">Edit</button>
-    </div>
-    <div class="goal-row">
-      <div class="goal-input-group hidden" id="goalInputGroup">
-        <label>Target applications this week</label>
-        <input id="goalInput" type="number" min="1" max="100" placeholder="e.g. 5">
-        <button id="saveGoalBtn" type="button" class="goal-save-btn">Save</button>
-      </div>
-      <div class="goal-display" id="goalDisplay">
-        <div class="goal-visual">
-          <div class="goal-ring-wrap" id="goalRingWrap">
-            <svg class="goal-ring" viewBox="0 0 36 36">
-              <path class="goal-ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3"/>
-              <path class="goal-ring-fill" id="goalRingFill" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke-width="3" stroke-dasharray="0, 100"/>
+  <div class="wrap">
+    <header>
+      <div class="header-row">
+        <div>
+          <div class="eyebrow">Pipeline</div>
+          <h1>Application Tracker</h1>
+          <div class="sub">Every company, every follow-up, in one place.</div>
+        </div>
+        <div class="header-actions">
+          <button id="installBtn" class="icon-toggle install-btn hidden" type="button" title="Install app"
+            aria-label="Install app">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3v12"></path>
+              <path d="M7 10l5 5 5-5"></path>
+              <path d="M5 19h14"></path>
             </svg>
-            <div class="goal-ring-text">
-              <span class="goal-pct" id="goalPct">0%</span>
+          </button>
+
+          <div class="bell-wrap">
+            <button id="notificationBell" class="icon-toggle" type="button" title="Follow-ups due"
+              aria-label="Follow-ups due">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+              </svg>
+              <span id="notificationBadge" class="notification-badge hidden">0</span>
+            </button>
+            <div id="notificationPanel" class="notification-panel hidden" aria-live="polite"></div>
+          </div>
+
+          <button id="settingsBtn" class="icon-toggle" type="button" title="Settings" aria-label="Settings">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z">
+              </path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div class="quick-nav" id="quickNav">
+      <a href="#stats" class="quick-nav-link">Overview</a>
+      <a href="#kanbanPanel" class="quick-nav-link">Pipeline</a>
+      <a href="#chartsPanel" class="quick-nav-link">Charts</a>
+      <a href="#calendarPanel" class="quick-nav-link">Calendar</a>
+      <a href="#applicationsPanel" class="quick-nav-link">Applications</a>
+    </div>
+
+    <div class="stats" id="stats"></div>
+
+    <div class="panel" id="weeklyGoalPanel">
+      <div class="goal-header">
+        <div class="goal-header-left">
+          <h2>Weekly Goal</h2>
+        </div>
+        <button id="editGoalBtn" type="button" class="goal-edit-btn">Edit</button>
+      </div>
+      <div class="goal-row">
+        <div class="goal-input-group hidden" id="goalInputGroup">
+          <label>Target applications this week</label>
+          <input id="goalInput" type="number" min="1" max="100" placeholder="e.g. 5">
+          <button id="saveGoalBtn" type="button" class="goal-save-btn">Save</button>
+        </div>
+        <div class="goal-display" id="goalDisplay">
+          <div class="goal-visual">
+            <div class="goal-ring-wrap" id="goalRingWrap">
+              <svg class="goal-ring" viewBox="0 0 36 36">
+                <path class="goal-ring-bg"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none"
+                  stroke-width="3" />
+                <path class="goal-ring-fill" id="goalRingFill"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none"
+                  stroke-width="3" stroke-dasharray="0, 100" />
+              </svg>
+              <div class="goal-ring-text">
+                <span class="goal-pct" id="goalPct">0%</span>
+              </div>
+            </div>
+            <div class="goal-details">
+              <div class="goal-count" id="goalCount"><strong>0</strong> / 5</div>
+              <div class="goal-label">applied this week</div>
+              <div class="goal-bar-wrap">
+                <div class="goal-bar" id="goalBar"></div>
+              </div>
             </div>
           </div>
-          <div class="goal-details">
-            <div class="goal-count" id="goalCount"><strong>0</strong> / 5</div>
-            <div class="goal-label">applied this week</div>
-            <div class="goal-bar-wrap">
-              <div class="goal-bar" id="goalBar"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>
+        Add application
+        <button id="toggleForm" type="button">Hide</button>
+      </h2>
+      <div id="formBody">
+
+        <div class="form-section">
+          <div class="form-section-head">
+            <span class="form-section-title">Basics</span>
+            <button type="button" id="starToggle" class="star-btn form-star-toggle" title="Mark as dream company">☆
+              Priority</button>
+            <input type="checkbox" id="f-priority" class="hidden">
+          </div>
+          <div class="form-grid">
+            <div class="wide">
+              <label>Company</label>
+              <input id="f-company" placeholder="e.g. Notion">
+            </div>
+            <div class="wide">
+              <label>Role</label>
+              <input id="f-role" placeholder="e.g. SWE Intern">
+            </div>
+            <div>
+              <label>Source</label>
+              <select id="f-source">
+                <option>Wellfound</option>
+                <option>Naukri</option>
+                <option>Internshala</option>
+                <option>HiringCafe</option>
+                <option>Company site</option>
+                <option>Cold email</option>
+                <option>LinkedIn</option>
+                <option>Referral</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div>
+              <label>Date applied</label>
+              <input id="f-date" type="date">
+            </div>
+            <div class="wide">
+              <label>Candidate portal link (where you check status)</label>
+              <input id="f-portal" placeholder="e.g. https://company.wd3.myworkdayjobs.com/...">
             </div>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
 
-  <div class="panel">
-    <h2>
-      Add application
-      <button id="toggleForm" type="button">Hide</button>
-    </h2>
-    <div id="formBody">
-
-      <div class="form-section">
-        <div class="form-section-head">
-          <span class="form-section-title">Basics</span>
-          <button type="button" id="starToggle" class="star-btn form-star-toggle" title="Mark as dream company">☆ Priority</button>
-          <input type="checkbox" id="f-priority" class="hidden">
+        <div class="form-section">
+          <label>Contact / notes (email sent to, OA link, deadline)</label>
+          <textarea id="f-notes" placeholder="e.g. sent cold mail to founder@x.com, OA due Fri"></textarea>
         </div>
-        <div class="form-grid">
-          <div class="wide">
-            <label>Company</label>
-            <input id="f-company" placeholder="e.g. Notion">
-          </div>
-          <div class="wide">
-            <label>Role</label>
-            <input id="f-role" placeholder="e.g. SWE Intern">
+
+        <button type="button" id="toggleAdvanced" class="advanced-toggle">+ Interview / OA deadline date</button>
+        <div id="advancedFields" class="form-grid advanced-fields hidden">
+          <div>
+            <label>Event date (interview / OA deadline)</label>
+            <input id="f-eventdate" type="date">
           </div>
           <div>
-            <label>Source</label>
-            <select id="f-source">
-              <option>Wellfound</option>
-              <option>Naukri</option>
-              <option>Internshala</option>
-              <option>HiringCafe</option>
-              <option>Company site</option>
-              <option>Cold email</option>
-              <option>LinkedIn</option>
-              <option>Referral</option>
-              <option>Other</option>
-            </select>
-          </div>
-          <div>
-            <label>Date applied</label>
-            <input id="f-date" type="date">
-          </div>
-          <div class="wide">
-            <label>Candidate portal link (where you check status)</label>
-            <input id="f-portal" placeholder="e.g. https://company.wd3.myworkdayjobs.com/...">
+            <label>Event label</label>
+            <input id="f-eventlabel" placeholder="e.g. Interview / OA deadline">
           </div>
         </div>
-      </div>
 
-      <div class="form-section">
-        <label>Contact / notes (email sent to, OA link, deadline)</label>
-        <textarea id="f-notes" placeholder="e.g. sent cold mail to founder@x.com, OA due Fri"></textarea>
+        <button class="add-btn" id="addBtn" type="button">+ Add to tracker</button>
+        <div class="duplicate-warning" id="duplicateWarning">⚠️ A company with a similar name already exists. Add
+          anyway?</div>
       </div>
+    </div>
 
-      <button type="button" id="toggleAdvanced" class="advanced-toggle">+ Interview / OA deadline date</button>
-      <div id="advancedFields" class="form-grid advanced-fields hidden">
-        <div>
-          <label>Event date (interview / OA deadline)</label>
-          <input id="f-eventdate" type="date">
+    <div class="panel" id="kanbanPanel">
+      <h2>Pipeline</h2>
+      <div class="kanban-board" id="kanbanBoard"></div>
+    </div>
+
+    <div class="panel" id="chartsPanel">
+      <h2>Stats</h2>
+      <div class="charts" id="chartsGrid">
+        <div class="chart-empty-state hidden" id="chartsEmptyState" style="grid-column: 1 / -1; height: 220px;">
+          <strong>No data yet</strong>
+          Add your first application above and your stats will show up here.
         </div>
-        <div>
-          <label>Event label</label>
-          <input id="f-eventlabel" placeholder="e.g. Interview / OA deadline">
+        <div class="chart-box"><canvas id="statusChart"></canvas></div>
+        <div class="chart-box"><canvas id="sourceChart"></canvas></div>
+        <div class="chart-box wide-chart"><canvas id="weeklyChart"></canvas></div>
+        <div class="chart-box wide-chart"><canvas id="funnelChart"></canvas></div>
+        <div class="chart-box"><canvas id="successChart"></canvas></div>
+        <div class="chart-box response-box">
+          <div class="response-title">Avg response time</div>
+          <div class="response-overall" id="responseOverall">—</div>
+          <div class="response-list" id="responseList"></div>
         </div>
       </div>
+    </div>
 
-      <button class="add-btn" id="addBtn" type="button">+ Add to tracker</button>
-      <div class="duplicate-warning" id="duplicateWarning">⚠️ A company with a similar name already exists. Add anyway?</div>
+    <div class="panel" id="calendarPanel">
+      <h2>
+        Calendar
+        <div class="cal-nav">
+          <button id="calToday" type="button" class="cal-today-btn">Today</button>
+          <button id="calPrev" type="button">‹</button>
+          <span id="calLabel"></span>
+          <button id="calNext" type="button">›</button>
+        </div>
+      </h2>
+      <div id="calendarGrid" class="calendar-grid"></div>
+      <div id="calendarDayEvents" class="calendar-day-events"></div>
+    </div>
+
+    <div class="panel" id="applicationsPanel">
+      <h2>
+        Applications
+        <div class="csv-actions">
+          <button id="printBtn" type="button" title="Print a clean summary report">🖨️ Print</button>
+          <button id="exportCsvBtn" type="button" title="Download all applications as CSV">Export CSV</button>
+          <button id="importCsvBtn" type="button" title="Add applications from a CSV file">Import CSV</button>
+          <input id="importCsvFile" type="file" accept=".csv" class="hidden">
+        </div>
+      </h2>
+      <div class="bulk-bar hidden" id="bulkBar">
+        <span id="bulkCount">0 selected</span>
+        <select id="bulkStatusSelect">
+          <option value="">Change status to…</option>
+          <option>Applied</option>
+          <option>Mail Not Found</option>
+          <option>Under Consideration</option>
+          <option>OA/Task Pending</option>
+          <option>Interview Scheduled</option>
+          <option>Interviewed</option>
+          <option>Offer</option>
+          <option>Rejected</option>
+          <option>No Response</option>
+          <option>Ghosted</option>
+        </select>
+        <button id="bulkApplyBtn" type="button" class="bulk-action-btn">Apply</button>
+        <button id="bulkDeleteBtn" type="button" class="bulk-action-btn bulk-delete-btn">🗑 Delete</button>
+        <button id="bulkCancelBtn" type="button" class="bulk-cancel-btn">✕</button>
+      </div>
+      <input id="searchBox" class="search-box" placeholder="Search company, role, or notes...">
+      <div class="filters" id="filters"></div>
+      <div id="tableWrap">
+        <div class="loading-state">
+          <div class="spinner"></div>
+          Loading applications…
+        </div>
+      </div>
     </div>
   </div>
 
-  <div class="panel" id="kanbanPanel">
-    <h2>Pipeline</h2>
-    <div class="kanban-board" id="kanbanBoard"></div>
-  </div>
+  <div class="toast" id="toast"></div>
 
-  <div class="panel" id="chartsPanel">
-    <h2>Stats</h2>
-    <div class="charts" id="chartsGrid">
-      <div class="chart-empty-state hidden" id="chartsEmptyState" style="grid-column: 1 / -1; height: 220px;">
-        <strong>No data yet</strong>
-        Add your first application above and your stats will show up here.
-      </div>
-      <div class="chart-box"><canvas id="statusChart"></canvas></div>
-      <div class="chart-box"><canvas id="sourceChart"></canvas></div>
-      <div class="chart-box wide-chart"><canvas id="weeklyChart"></canvas></div>
-      <div class="chart-box wide-chart"><canvas id="funnelChart"></canvas></div>
-      <div class="chart-box"><canvas id="successChart"></canvas></div>
-      <div class="chart-box response-box">
-        <div class="response-title">Avg response time</div>
-        <div class="response-overall" id="responseOverall">—</div>
-        <div class="response-list" id="responseList"></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="panel" id="calendarPanel">
-    <h2>
-      Calendar
-      <div class="cal-nav">
-        <button id="calToday" type="button" class="cal-today-btn">Today</button>
-        <button id="calPrev" type="button">‹</button>
-        <span id="calLabel"></span>
-        <button id="calNext" type="button">›</button>
-      </div>
-    </h2>
-    <div id="calendarGrid" class="calendar-grid"></div>
-    <div id="calendarDayEvents" class="calendar-day-events"></div>
-  </div>
-
-  <div class="panel" id="applicationsPanel">
-    <h2>
-      Applications
-      <div class="csv-actions">
-        <button id="printBtn" type="button" title="Print a clean summary report">🖨️ Print</button>
-        <button id="exportCsvBtn" type="button" title="Download all applications as CSV">Export CSV</button>
-        <button id="importCsvBtn" type="button" title="Add applications from a CSV file">Import CSV</button>
-        <input id="importCsvFile" type="file" accept=".csv" class="hidden">
-      </div>
-    </h2>
-    <div class="bulk-bar hidden" id="bulkBar">
-      <span id="bulkCount">0 selected</span>
-      <select id="bulkStatusSelect">
-        <option value="">Change status to…</option>
-        <option>Applied</option>
-        <option>Under Consideration</option>
-        <option>OA/Task Pending</option>
-        <option>Interview Scheduled</option>
-        <option>Interviewed</option>
-        <option>Offer</option>
-        <option>Rejected</option>
-        <option>No Response</option>
-        <option>Ghosted</option>
-      </select>
-      <button id="bulkApplyBtn" type="button" class="bulk-action-btn">Apply</button>
-      <button id="bulkDeleteBtn" type="button" class="bulk-action-btn bulk-delete-btn">🗑 Delete</button>
-      <button id="bulkCancelBtn" type="button" class="bulk-cancel-btn">✕</button>
-    </div>
-    <input id="searchBox" class="search-box" placeholder="Search company, role, or notes...">
-    <div class="filters" id="filters"></div>
-    <div id="tableWrap">
-      <div class="loading-state">
-        <div class="spinner"></div>
-        Loading applications…
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<div id="csvImportModal" class="shortcut-help hidden">
-  <div class="shortcut-card csv-import-card">
-    <div class="csv-import-head">
-      <strong>📥 Import CSV</strong>
-      <button id="closeCsvImport" type="button" title="Close">✕</button>
-    </div>
-    <div class="csv-import-body">
-      <p class="csv-import-desc">Upload a CSV file to add multiple applications at once.</p>
-
-      <div class="csv-format-box">
-        <div class="csv-format-title">Required column:</div>
-        <div class="csv-format-row csv-required">
-          <div class="csv-col-name">company</div>
-          <div class="csv-col-desc">Company name — only mandatory field</div>
-        </div>
-
-        <div class="csv-format-title">Optional columns:</div>
-        <div class="csv-format-row">
-          <div class="csv-col-name">role</div>
-          <div class="csv-col-desc">Job title</div>
-        </div>
-        <div class="csv-format-row">
-          <div class="csv-col-name">source</div>
-          <div class="csv-col-desc">LinkedIn, Wellfound, Referral etc.</div>
-        </div>
-        <div class="csv-format-row">
-          <div class="csv-col-name">dateApplied</div>
-          <div class="csv-col-desc">YYYY-MM-DD</div>
-        </div>
-        <div class="csv-format-row">
-          <div class="csv-col-name">status</div>
-          <div class="csv-col-desc">Applied, Interview Scheduled etc.</div>
-        </div>
-        <div class="csv-format-row">
-          <div class="csv-col-name">notes</div>
-          <div class="csv-col-desc">Any notes or links</div>
-        </div>
-        <div class="csv-format-row">
-          <div class="csv-col-name">portalLink</div>
-          <div class="csv-col-desc">Career page URL</div>
-        </div>
+  <!-- ===================== SETTINGS ===================== -->
+  <!-- Left = sections, right = selected section.
+       New section (e.g. Profile) = one [data-settings-tab] button + one [data-settings-pane] block. -->
+  <div id="settingsModal" class="shortcut-help settings-overlay hidden">
+    <div class="settings-card" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="settings-head">
+        <strong id="settingsTitle">Settings</strong>
+        <button id="closeSettings" class="settings-close" type="button" aria-label="Close">✕</button>
       </div>
 
-      <div class="csv-sample">
-        <div class="csv-sample-title">Example CSV:</div>
-        <div class="csv-sample-table-wrap">
-          <table class="csv-sample-table">
-            <thead>
-              <tr>
-                <th>company</th>
-                <th>role</th>
-                <th>source</th>
-                <th>dateApplied</th>
-                <th>status</th>
-                <th>notes</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Google</td>
-                <td>SWE Intern</td>
-                <td>LinkedIn</td>
-                <td>2026-08-10</td>
-                <td>Interview Scheduled</td>
-                <td>sent resume</td>
-              </tr>
-              <tr>
-                <td>Meta</td>
-                <td>Backend Dev</td>
-                <td>Referral</td>
-                <td>2026-08-12</td>
-                <td>Applied</td>
-                <td>follow up next week</td>
-              </tr>
-              <tr>
-                <td>Amazon</td>
-                <td>SD Intern</td>
-                <td>Wellfound</td>
-                <td>2026-08-14</td>
-                <td>OA Task Pending</td>
-                <td>OA due Friday</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <div class="settings-layout">
+        <nav class="settings-nav" aria-label="Settings sections">
+          <button type="button" class="settings-nav-btn active" data-settings-tab="shortcuts">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+              <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"></path>
+            </svg>
+            <span>Shortcuts</span>
+          </button>
+          <button type="button" class="settings-nav-btn" data-settings-tab="theme">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+            <span>Theme</span>
+          </button>
+          <button type="button" class="settings-nav-btn" data-settings-tab="notifications">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+            <span>Notifications</span>
+          </button>
+        </nav>
 
-      <div class="csv-import-actions">
-        <button id="csvImportFileBtn" type="button" class="csv-import-btn">📁 Choose CSV File</button>
-        <button id="csvDownloadTemplate" type="button" class="csv-template-btn">⬇ Download Template</button>
+        <div class="settings-content">
+          <section class="settings-pane" data-settings-pane="shortcuts">
+            <h3>Keyboard shortcuts</h3>
+            <p class="settings-pane-desc">Works anywhere on the page, as long as you are not typing in a field.</p>
+            <div class="shortcut-list">
+              <div><kbd>N</kbd><span class="sh-desc">New application</span></div>
+              <div><kbd>/</kbd><span class="sh-desc">Focus search</span></div>
+              <div><kbd>D</kbd><span class="sh-desc">Toggle dark / light</span></div>
+              <div><kbd>R</kbd><span class="sh-desc">Refresh applications</span></div>
+              <div><kbd>?</kbd><span class="sh-desc">Open this list</span></div>
+              <div><kbd>Esc</kbd><span class="sh-desc">Close panels</span></div>
+            </div>
+          </section>
+
+          <section class="settings-pane hidden" data-settings-pane="theme">
+            <h3>Theme</h3>
+            <p class="settings-pane-desc">System follows your device and switches automatically.</p>
+            <div class="theme-row">
+              <button id="settingsLightBtn" class="theme-btn" type="button">
+                <span class="theme-icon">☀️</span> Light
+              </button>
+              <button id="settingsDarkBtn" class="theme-btn" type="button">
+                <span class="theme-icon">🌙</span> Dark
+              </button>
+              <button id="settingsAutoBtn" class="theme-btn" type="button">
+                <span class="theme-icon">💻</span> System
+              </button>
+            </div>
+          </section>
+
+          <section class="settings-pane hidden" data-settings-pane="notifications">
+            <h3>Notifications</h3>
+            <p class="settings-pane-desc">Browser pop-ups when a follow-up becomes due. The bell in the header
+              always shows what is due, even with this off.</p>
+            <div class="notif-row">
+              <div class="notif-status" id="notifStatus"></div>
+              <button id="settingsNotifBtn" class="notif-switch" type="button" role="switch"
+                aria-checked="false" aria-label="Browser reminders"></button>
+            </div>
+          </section>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
-<div id="confirmModal" class="shortcut-help hidden">
-  <div class="shortcut-card confirm-card">
-    <div class="confirm-message" id="confirmMessage">Are you sure?</div>
-    <div class="confirm-actions">
-      <button id="confirmCancel" type="button" class="confirm-btn confirm-cancel">Cancel</button>
-      <button id="confirmYes" type="button" class="confirm-btn confirm-danger">Delete</button>
-    </div>
-  </div>
-</div>
+  <!-- ===================== MAILS & NOTES BOX ===================== -->
+  <!-- Kept before confirmModal in the DOM so the confirm dialog shows on top of it -->
+  <div id="notesHub" class="shortcut-help notes-hub-overlay hidden">
+    <div class="notes-hub-card" role="dialog" aria-modal="true" aria-labelledby="notesHubTitle">
+      <div class="notes-hub-head">
+        <strong id="notesHubTitle">Mails &amp; notes</strong>
+        <button id="notesHubClose" type="button" class="notes-hub-close" aria-label="Close">✕</button>
+      </div>
 
-<!-- Notes Modal -->
-<div id="notesModal" class="shortcut-help hidden">
-  <div class="shortcut-card notes-modal-card">
-    <div class="notes-modal-head">
-      <strong>
-        <div>
-          Notes
+      <div class="notes-hub-tabs">
+        <button type="button" data-hub-tab="mail" class="active">✉ Mails</button>
+        <button type="button" data-hub-tab="note">📝 Notes</button>
+      </div>
+
+      <!-- List view -->
+      <div class="notes-hub-view" id="notesHubListView">
+        <div class="notes-hub-toolbar">
+          <div class="hub-fill" id="hubFillRow">
+            <label for="snippetFillSelect">Fill {company} / {role} from</label>
+            <select id="snippetFillSelect"></select>
+          </div>
+          <button type="button" id="notesHubNew" class="notes-hub-new">+ New mail</button>
         </div>
-      </strong>
-      <!-- <button class="shortcut-close" id="notesModalClose" type="button" aria-label="Close">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"/>
-          <line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button> -->
-    </div>
-    <div class="notes-modal-body">
-      <textarea id="notesModalTextarea" placeholder="Add notes (email, OA link, deadline, etc.)..."></textarea>
-    </div>
-    <div class="notes-modal-foot">
-      <button class="confirm-btn confirm-cancel" id="notesModalCancel" type="button">Close</button>
-      <button class="confirm-btn confirm-add" id="notesModalSave" type="button">Edit</button>
-    </div>
-  </div>
-</div>
+        <div id="notesHubList" class="notes-hub-list is-mails"></div>
+      </div>
 
-<div id="snoozeModal" class="shortcut-help hidden">
-  <div class="shortcut-card snooze-card">
-    <div class="snooze-modal-head">
-      <span class="snooze-modal-icon">😴</span>
-      <div class="snooze-modal-title">Snooze Follow-up</div>
-      <div class="snooze-modal-subtitle">Choose when to be reminded</div>
-    </div>
-    <div class="snooze-durations" id="snoozeDurations">
-      <button class="snooze-option" data-days="1">
-        <span class="snooze-option-days">1</span>
-        <span class="snooze-option-label">day</span>
-      </button>
-      <button class="snooze-option snooze-option-selected" data-days="3">
-        <span class="snooze-option-days">3</span>
-        <span class="snooze-option-label">days</span>
-      </button>
-      <button class="snooze-option" data-days="7">
-        <span class="snooze-option-days">7</span>
-        <span class="snooze-option-label">days</span>
-      </button>
-      <button class="snooze-option" data-days="14">
-        <span class="snooze-option-days">14</span>
-        <span class="snooze-option-label">days</span>
-      </button>
-      <button class="snooze-option snooze-custom-btn" data-days="custom">
-        <span class="snooze-option-days">✎</span>
-        <span class="snooze-option-label">custom</span>
-      </button>
-    </div>
-    <div class="snooze-custom-input-row hidden" id="snoozeCustomRow">
-      <input id="snoozeCustomDays" type="number" min="1" max="365" value="30" class="snooze-custom-input">
-      <span class="snooze-custom-unit">days</span>
-    </div>
-    <div class="snooze-actions">
-      <button id="snoozeCancelBtn" type="button" class="confirm-btn confirm-cancel">Cancel</button>
-      <button id="snoozeConfirmBtn" type="button" class="confirm-btn snooze-confirm">Snooze</button>
-    </div>
-  </div>
-</div>
+      <!-- Editor view -->
+      <div class="notes-hub-view hidden" id="notesHubEditView">
+        <div class="notes-hub-form">
+          <div id="hubMailFields">
+            <label for="hubSubject">Subject</label>
+            <input id="hubSubject" type="text" autocomplete="off"
+              placeholder="e.g. Following up on my {role} application">
+          </div>
+          <div id="hubNoteFields" class="hidden">
+            <label for="hubTitle">Title (optional)</label>
+            <input id="hubTitle" type="text" autocomplete="off" placeholder="e.g. Interview prep points">
+          </div>
 
-<div id="shortcutHelp" class="shortcut-help hidden">
-  <div class="shortcut-card">
-    <div class="shortcut-head">
-      <strong>Keyboard shortcuts</strong>
-      <button id="closeShortcutHelp" type="button" title="Close">✕</button>
-    </div>
-    <div class="shortcut-list">
-      <div><kbd>N</kbd><span>New application</span></div>
-      <div><kbd>/</kbd><span>Focus search</span></div>
-      <div><kbd>D</kbd><span>Toggle dark mode</span></div>
-      <div><kbd>R</kbd><span>Refresh applications</span></div>
-      <div><kbd>?</kbd><span>Show shortcuts</span></div>
-      <div><kbd>Esc</kbd><span>Close panels</span></div>
+          <label for="hubBody" id="hubBodyLabel">Mail content</label>
+          <textarea id="hubBody"></textarea>
+
+          <div class="notes-hub-resume" id="hubResumeFields">
+            <div class="notes-hub-resume-title">Resume used <span>(optional)</span></div>
+            <label for="hubResumeLink">Online resume link</label>
+            <input id="hubResumeLink" type="url" inputmode="url" autocomplete="off"
+              placeholder="e.g. drive.google.com/file/...">
+            <label for="hubResumeNote">Which resume / format</label>
+            <input id="hubResumeNote" type="text" autocomplete="off"
+              placeholder="e.g. Backend-focused, 1 page — used for startups">
+            <div class="notes-hub-hint">So you remember which resume goes with this mail. In the subject and mail,
+              {company} and {role} get filled in when you copy.</div>
+          </div>
+        </div>
+        <div class="notes-hub-foot">
+          <button class="confirm-btn confirm-cancel" id="hubCancel" type="button">Back</button>
+          <button class="confirm-btn confirm-add" id="hubSave" type="button">Save</button>
+        </div>
+      </div>
     </div>
   </div>
-</div>
-<div id="confetti-container"></div>
-<button class="fab" id="fab" type="button" title="Add application">+</button>
-<script src="joblinks-icons.js" id="jobLinksIconsScript"></script>
-<!-- <script src="joblinks-icons.js?v=5" id="jobLinksIconsScript"></script> -->
-<script src="joblinks.js"></script>
-<!-- <script src="joblinks.js?v=5"></script> -->
-<script src="app.js"></script>
-<script>
-if('serviceWorker' in navigator){
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  });
-}
-</script>
+
+  <div id="csvImportModal" class="shortcut-help hidden">
+    <div class="shortcut-card csv-import-card">
+      <div class="csv-import-head">
+        <strong>📥 Import CSV</strong>
+        <button id="closeCsvImport" type="button" title="Close">✕</button>
+      </div>
+      <div class="csv-import-body">
+        <p class="csv-import-desc">Upload a CSV file to add multiple applications at once.</p>
+
+        <div class="csv-format-box">
+          <div class="csv-format-title">Required column:</div>
+          <div class="csv-format-row csv-required">
+            <div class="csv-col-name">company</div>
+            <div class="csv-col-desc">Company name — only mandatory field</div>
+          </div>
+
+          <div class="csv-format-title">Optional columns:</div>
+          <div class="csv-format-row">
+            <div class="csv-col-name">role</div>
+            <div class="csv-col-desc">Job title</div>
+          </div>
+          <div class="csv-format-row">
+            <div class="csv-col-name">source</div>
+            <div class="csv-col-desc">LinkedIn, Wellfound, Referral etc.</div>
+          </div>
+          <div class="csv-format-row">
+            <div class="csv-col-name">dateApplied</div>
+            <div class="csv-col-desc">YYYY-MM-DD</div>
+          </div>
+          <div class="csv-format-row">
+            <div class="csv-col-name">status</div>
+            <div class="csv-col-desc">Applied, Interview Scheduled etc.</div>
+          </div>
+          <div class="csv-format-row">
+            <div class="csv-col-name">notes</div>
+            <div class="csv-col-desc">Any notes or links</div>
+          </div>
+          <div class="csv-format-row">
+            <div class="csv-col-name">portalLink</div>
+            <div class="csv-col-desc">Career page URL</div>
+          </div>
+        </div>
+
+        <div class="csv-sample">
+          <div class="csv-sample-title">Example CSV:</div>
+          <div class="csv-sample-table-wrap">
+            <table class="csv-sample-table">
+              <thead>
+                <tr>
+                  <th>company</th>
+                  <th>role</th>
+                  <th>source</th>
+                  <th>dateApplied</th>
+                  <th>status</th>
+                  <th>notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Google</td>
+                  <td>SWE Intern</td>
+                  <td>LinkedIn</td>
+                  <td>2026-08-10</td>
+                  <td>Interview Scheduled</td>
+                  <td>sent resume</td>
+                </tr>
+                <tr>
+                  <td>Meta</td>
+                  <td>Backend Dev</td>
+                  <td>Referral</td>
+                  <td>2026-08-12</td>
+                  <td>Applied</td>
+                  <td>follow up next week</td>
+                </tr>
+                <tr>
+                  <td>Amazon</td>
+                  <td>SD Intern</td>
+                  <td>Wellfound</td>
+                  <td>2026-08-14</td>
+                  <td>OA/Task Pending</td>
+                  <td>OA due Friday</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="csv-import-actions">
+          <button id="csvImportFileBtn" type="button" class="csv-import-btn">📁 Choose CSV File</button>
+          <button id="csvDownloadTemplate" type="button" class="csv-template-btn">⬇ Download Template</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="confirmModal" class="shortcut-help hidden">
+    <div class="shortcut-card confirm-card">
+      <div class="confirm-message" id="confirmMessage">Are you sure?</div>
+      <div class="confirm-actions">
+        <button id="confirmCancel" type="button" class="confirm-btn confirm-cancel">Cancel</button>
+        <button id="confirmYes" type="button" class="confirm-btn confirm-danger">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notes Modal (per-application notes) -->
+  <div id="notesModal" class="shortcut-help hidden">
+    <div class="shortcut-card notes-modal-card">
+      <div class="notes-modal-head">
+        <strong>Notes</strong>
+      </div>
+      <div class="notes-modal-body">
+        <textarea id="notesModalTextarea" placeholder="Add notes (email, OA link, deadline, etc.)..."></textarea>
+      </div>
+      <div class="notes-modal-foot">
+        <button class="confirm-btn confirm-cancel" id="notesModalCancel" type="button">Close</button>
+        <button class="confirm-btn confirm-add" id="notesModalSave" type="button">Edit</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="snoozeModal" class="shortcut-help hidden">
+    <div class="shortcut-card snooze-card">
+      <div class="snooze-modal-head">
+        <span class="snooze-modal-icon">😴</span>
+        <div class="snooze-modal-title">Snooze Follow-up</div>
+        <div class="snooze-modal-subtitle">Choose when to be reminded</div>
+      </div>
+      <div class="snooze-durations" id="snoozeDurations">
+        <button class="snooze-option" data-days="1">
+          <span class="snooze-option-days">1</span>
+          <span class="snooze-option-label">day</span>
+        </button>
+        <button class="snooze-option snooze-option-selected" data-days="3">
+          <span class="snooze-option-days">3</span>
+          <span class="snooze-option-label">days</span>
+        </button>
+        <button class="snooze-option" data-days="7">
+          <span class="snooze-option-days">7</span>
+          <span class="snooze-option-label">days</span>
+        </button>
+        <button class="snooze-option" data-days="14">
+          <span class="snooze-option-days">14</span>
+          <span class="snooze-option-label">days</span>
+        </button>
+        <button class="snooze-option snooze-custom-btn" data-days="custom">
+          <span class="snooze-option-days">✎</span>
+          <span class="snooze-option-label">custom</span>
+        </button>
+      </div>
+      <div class="snooze-custom-input-row hidden" id="snoozeCustomRow">
+        <input id="snoozeCustomDays" type="number" min="1" max="365" value="30" class="snooze-custom-input">
+        <span class="snooze-custom-unit">days</span>
+      </div>
+      <div class="snooze-actions">
+        <button id="snoozeCancelBtn" type="button" class="confirm-btn confirm-cancel">Cancel</button>
+        <button id="snoozeConfirmBtn" type="button" class="confirm-btn snooze-confirm">Snooze</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="confetti-container"></div>
+
+  <!-- Floating buttons: notes (desktop + mobile) and add application (mobile) -->
+  <button class="fab-notes" id="notesFab" type="button" title="Mails &amp; notes" aria-label="Mails and notes">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+      <polyline points="14 3 14 9 20 9" />
+      <line x1="8" y1="13" x2="16" y2="13" />
+      <line x1="8" y1="17" x2="13" y2="17" />
+    </svg>
+  </button>
+  <button class="fab" id="fab" type="button" title="Add application">+</button>
+
+  <script src="joblinks-icons.js" id="jobLinksIconsScript"></script>
+  <script src="joblinks.js"></script>
+  <script src="app.js"></script>
+  <script src="snippets.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => { });
+      });
+    }
+  </script>
 </body>
+
 </html>
