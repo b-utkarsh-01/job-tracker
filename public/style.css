@@ -2015,8 +2015,30 @@ body:has(.job-links-sidebar.sidebar-expanded){ padding-left: 276px; }
     display: block; font-size: 9px; text-transform: uppercase; letter-spacing: 0.07em;
     color: var(--ink-soft); margin-bottom: 2px;
   }
-  #tableWrap tbody td.notes{ display: block; max-width: none; }
-  #tableWrap tbody td.notes .notes-content{ max-height: none; -webkit-line-clamp: unset; }
+  #tableWrap tbody td.notes{
+    display: block;
+    max-width: none;
+    cursor: pointer;
+  }
+  #tableWrap tbody td.notes .notes-content{
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    max-height: 58px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    line-height: 1.4;
+    padding: 4px 6px;
+    background: var(--slate-soft);
+    border-radius: 6px;
+    font-size: 11.5px;
+    transition: background 0.15s ease;
+  }
+  #tableWrap tbody td.notes:active .notes-content{
+    background: var(--line);
+  }
 
   /* Delete + checkbox pinned to the card's top-right corner */
   #tableWrap tbody td.cell-del,
