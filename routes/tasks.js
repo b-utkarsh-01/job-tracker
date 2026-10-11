@@ -64,11 +64,12 @@ router.delete('/:id', async (req, res) => {
     if (!task) return res.status(404).json({ error: 'Not found' });
 
     const expiresAt = await getRetentionExpiresAt();
+    const taskTitle = (task.title || 'Untitled task').trim() || 'Untitled task';
 
     await Trash.create({
       entityType: 'task',
       originalId: task._id,
-      title: task.title,
+      title: taskTitle,
       subtitle: `Reminder/Task for ${new Date(task.date).toLocaleDateString()}`,
       data: task.toObject(),
       expiresAt
@@ -78,8 +79,8 @@ router.delete('/:id', async (req, res) => {
       entityType: 'task',
       entityId: task._id,
       action: 'delete',
-      title: task.title,
-      description: `Moved task "${task.title}" to Trash`,
+      title: taskTitle,
+      description: `Moved task "${taskTitle}" to Trash`,
       snapshot: task.toObject()
     }).catch(e => console.error('History save error:', e.message));
 

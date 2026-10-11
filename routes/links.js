@@ -200,12 +200,13 @@ router.delete('/:id', async (req, res) => {
     }
 
     const expiresAt = await getRetentionExpiresAt();
+    const linkTitle = (link.name || link.url || 'Untitled link').trim() || 'Untitled link';
 
     await Trash.create({
       entityType: 'link',
       originalId: link._id,
-      title: link.name,
-      subtitle: `Link: ${link.url} (Section ${link.section})`,
+      title: linkTitle,
+      subtitle: `Link: ${link.url || 'No URL'} (Section ${link.section || 'General'})`,
       data: link.toObject(),
       expiresAt
     });
@@ -214,8 +215,8 @@ router.delete('/:id', async (req, res) => {
       entityType: 'link',
       entityId: link._id,
       action: 'delete',
-      title: link.name,
-      description: `Moved link "${link.name}" to Trash`,
+      title: linkTitle,
+      description: `Moved link "${linkTitle}" to Trash`,
       snapshot: link.toObject()
     }).catch(e => console.error('History save error:', e.message));
 

@@ -203,7 +203,9 @@ function toggleNotificationPanel() {
     renderNotificationPanel();
     panel.classList.remove('hidden');
     bell?.classList.add('active');
-    document.body.classList.add('notif-open-mobile');
+    if (window.innerWidth <= 680) {
+      document.body.classList.add('notif-open-mobile');
+    }
   } else {
     closeNotificationPanel();
   }
@@ -270,6 +272,16 @@ function initNotifications() {
     const isBackdrop = e.target.id === 'notifMobileBackdrop';
     if ((wrap && !wrap.contains(e.target)) || isBackdrop) closeNotificationPanel();
   });
+
+  window.addEventListener('resize', () => {
+    const panel = document.getElementById('notificationPanel');
+    const isOpen = panel && !panel.classList.contains('hidden');
+    if (isOpen && window.innerWidth <= 680) {
+      document.body.classList.add('notif-open-mobile');
+    } else if (window.innerWidth > 680) {
+      document.body.classList.remove('notif-open-mobile');
+    }
+  }, { passive: true });
 }
 
 // ============================================================
@@ -2397,11 +2409,16 @@ function renderTable() {
     btn.onclick = async () => {
       const id = btn.dataset.del;
       const deletedApp = apps.find(a => a._id === id);
-      const label = deletedApp ? deletedApp.company : 'this application';
+      const label = deletedApp?.company || deletedApp?.title || 'this application';
       const confirmed = await askConfirm(`Delete ${label}?`);
       if (!confirmed) return;
 
-      await fetch(`${API}/${id}`, { method: 'DELETE' });
+      const res = await fetch(`${API}/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        showToast(errData.error || 'Failed to delete application', 'error');
+        return;
+      }
       bulkSelectedIds = bulkSelectedIds.filter(x => x !== id);
 
       await loadApps();

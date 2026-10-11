@@ -18,12 +18,14 @@ const HistorySchema = new mongoose.Schema({
   title: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
+    default: 'Untitled'
   },
   description: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
+    default: 'Activity logged'
   },
   field: {
     type: String,

@@ -150,13 +150,29 @@ h1{ font-family: 'Space Grotesk', sans-serif; font-size: 30px; font-weight: 700;
   font: 700 9px/17px 'IBM Plex Mono', monospace; text-align: center; border: 2px solid var(--surface);
 }
 .notification-panel{
-  position: absolute; z-index: 50; top: 46px; right: 0; width: min(360px, calc(100vw - 28px));
+  position: absolute; z-index: 60; top: 46px; right: 0; width: min(360px, calc(100vw - 28px));
   background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(0,0,0,.12); padding: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.15); padding: 12px;
 }
-.notif-grabber, .notif-close-btn{ display: none; }
+.notif-grabber{ display: none; }
+.notif-close-btn{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--ink-soft);
+  padding: 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.notif-close-btn:hover{
+  color: var(--ink);
+  background: var(--slate-soft);
+}
 .notif-head{ display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.notif-head .panel-title{ margin-bottom: 0; }
+.notif-head .panel-title{ margin-bottom: 0 !important; }
 .notif-empty-state{ display: flex; align-items: center; gap: 8px; padding: 8px 4px; }
 .notif-check-icon{ color: var(--teal); flex-shrink: 0; }
 .notification-panel .panel-title{ font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700; margin-bottom: 8px; }
@@ -3269,38 +3285,50 @@ body.sidebar-hidden .job-links-sidebar{
   background: rgba(0, 0, 0, 0.48) !important;
 }
 
-/* Mobile expanded sidebar backdrop with blur effect */
+/* Mobile expanded sidebar backdrop with blur effect (mobile only) */
 .sidebar-mobile-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  z-index: 88;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.25s ease;
+  display: none;
 }
-body.sidebar-expanded-mobile .sidebar-mobile-backdrop {
-  opacity: 1;
-  pointer-events: auto;
+@media (max-width: 768px) {
+  .sidebar-mobile-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 88;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+  body.sidebar-expanded-mobile .sidebar-mobile-backdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 
-/* Mobile notification sheet backdrop with blur effect */
+/* Mobile notification sheet backdrop with blur effect (mobile only <= 680px) */
 .notif-mobile-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  z-index: 92;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.22s ease;
+  display: none;
 }
-body.notif-open-mobile .notif-mobile-backdrop {
-  opacity: 1;
-  pointer-events: auto;
+@media (max-width: 680px) {
+  .notif-mobile-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 92;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease;
+  }
+  body.notif-open-mobile .notif-mobile-backdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
 
 /* Single scroll container rule: prevent nested scrollbars */

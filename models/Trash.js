@@ -13,7 +13,8 @@ const TrashSchema = new mongoose.Schema({
   title: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
+    default: 'Untitled'
   },
   subtitle: {
     type: String,

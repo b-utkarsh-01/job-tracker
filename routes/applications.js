@@ -290,12 +290,15 @@ router.delete('/:id', async (req, res) => {
     if (!app) return res.status(404).json({ error: 'Not found' });
 
     const expiresAt = await getRetentionExpiresAt();
+    const appTitle = (app.company || app.title || 'Untitled application').trim() || 'Untitled application';
+    const appRole = (app.role || '').trim();
+    const subtitle = appRole ? `${appRole} · ${app.status || 'Applied'}` : `${app.status || 'Applied'}`;
 
     await Trash.create({
       entityType: 'application',
       originalId: app._id,
-      title: app.company,
-      subtitle: `${app.role || 'No role'} · ${app.status}`,
+      title: appTitle,
+      subtitle: subtitle,
       data: app.toObject(),
       expiresAt
     });
@@ -304,8 +307,8 @@ router.delete('/:id', async (req, res) => {
       entityType: 'application',
       entityId: app._id,
       action: 'delete',
-      title: app.company,
-      description: `Moved "${app.company} (${app.role || 'No role'})" to Trash`,
+      title: appTitle,
+      description: `Moved "${appTitle}${appRole ? ` (${appRole})` : ''}" to Trash`,
       snapshot: app.toObject()
     }).catch(e => console.error('History save error:', e.message));
 
