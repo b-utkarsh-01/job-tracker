@@ -12,8 +12,6 @@ A full-stack MERN-style web application for tracking job applications, managing 
 
 ## Screenshots
 
-> The live app is behind a login, so here is a quick visual tour.
-
 ### Dashboard
 
 | Dark mode | Light mode |
