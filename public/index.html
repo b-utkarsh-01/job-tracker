@@ -14,10 +14,15 @@
     href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
     rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="style.css?v=3">
+  <script src="icons.js"></script>
+  <script src="components.js"></script>
+  <link rel="stylesheet" href="style.css?v=6">
 </head>
 
 <body>
+  <!-- Mobile backdrops (blur effect) -->
+  <div class="sidebar-mobile-backdrop" id="sidebarMobileBackdrop" aria-hidden="true"></div>
+  <div class="notif-mobile-backdrop" id="notifMobileBackdrop" aria-hidden="true"></div>
 
   <!-- ===================== JOB-SITE SIDEBAR ===================== -->
   <aside class="job-links-sidebar sidebar-collapsed" id="jobLinksSidebar">
@@ -30,7 +35,10 @@
         </svg>
       </button>
       <div class="sidebar-brand">
-        <span class="sidebar-brand-text">Job links</span>
+        <span class="sidebar-brand-text">
+          <span class="brand-word">Job</span>
+          <span class="brand-word">Links</span>
+        </span>
       </div>
       <div class="sidebar-links" id="sidebarLinks"></div>
       <button class="sidebar-scroll-hint" id="sidebarScrollHint" type="button" aria-label="Scroll down for more links" title="More links below">
@@ -52,6 +60,7 @@
   <!-- Add / edit link modal -->
   <div class="shortcut-help hidden" id="linkModal">
     <div class="link-modal-card" role="dialog" aria-modal="true" aria-labelledby="linkModalTitle">
+      <div class="sheet-grabber" aria-hidden="true"></div>
       <div class="link-modal-head">
         <strong id="linkModalTitle">Add job link</strong>
         <button class="shortcut-close" id="linkModalClose" type="button" aria-label="Close">
@@ -107,16 +116,6 @@
           <div class="sub">Every company, every follow-up, in one place.</div>
         </div>
         <div class="header-actions">
-          <button id="installBtn" class="icon-toggle install-btn hidden" type="button" title="Install app"
-            aria-label="Install app">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 3v12"></path>
-              <path d="M7 10l5 5 5-5"></path>
-              <path d="M5 19h14"></path>
-            </svg>
-          </button>
-
           <div class="bell-wrap">
             <button id="notificationBell" class="icon-toggle" type="button" title="Follow-ups due"
               aria-label="Follow-ups due">
@@ -151,60 +150,65 @@
       <a href="#applicationsPanel" class="quick-nav-link">Applications</a>
     </div>
 
-    <div class="stats" id="stats"></div>
+    <div id="dashboardSections" class="dashboard-sections">
+      <div class="stats" id="stats" data-section-id="stats"></div>
 
-    <div class="panel" id="weeklyGoalPanel">
-      <div class="goal-header">
-        <div class="goal-header-left">
-          <h2>Weekly Goal</h2>
+      <div class="panel" id="weeklyGoalPanel" data-section-id="weeklyGoalPanel">
+        <div class="goal-header">
+          <div class="goal-header-left">
+            <h2>Weekly Goal</h2>
+          </div>
+          <button id="editGoalBtn" type="button" class="goal-edit-btn">Edit</button>
         </div>
-        <button id="editGoalBtn" type="button" class="goal-edit-btn">Edit</button>
-      </div>
-      <div class="goal-row">
-        <div class="goal-input-group hidden" id="goalInputGroup">
-          <label>Target applications this week</label>
-          <input id="goalInput" type="number" min="1" max="100" placeholder="e.g. 5">
-          <button id="saveGoalBtn" type="button" class="goal-save-btn">Save</button>
-        </div>
-        <div class="goal-display" id="goalDisplay">
-          <div class="goal-visual">
-            <div class="goal-ring-wrap" id="goalRingWrap">
-              <svg class="goal-ring" viewBox="0 0 36 36">
-                <path class="goal-ring-bg"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none"
-                  stroke-width="3" />
-                <path class="goal-ring-fill" id="goalRingFill"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none"
-                  stroke-width="3" stroke-dasharray="0, 100" />
-              </svg>
-              <div class="goal-ring-text">
-                <span class="goal-pct" id="goalPct">0%</span>
+        <div class="goal-row">
+          <div class="goal-input-group hidden" id="goalInputGroup">
+            <label>Target applications this week</label>
+            <input id="goalInput" type="number" min="1" max="100" placeholder="e.g. 5">
+            <button id="saveGoalBtn" type="button" class="goal-save-btn">Save</button>
+          </div>
+          <div class="goal-display" id="goalDisplay">
+            <div class="goal-visual">
+              <div class="goal-ring-wrap" id="goalRingWrap">
+                <svg class="goal-ring" viewBox="0 0 36 36">
+                  <path class="goal-ring-bg"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none"
+                    stroke-width="3" />
+                  <path class="goal-ring-fill" id="goalRingFill"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none"
+                    stroke-width="3" stroke-dasharray="0, 100" />
+                </svg>
+                <div class="goal-ring-text">
+                  <span class="goal-pct" id="goalPct">0%</span>
+                </div>
               </div>
-            </div>
-            <div class="goal-details">
-              <div class="goal-count" id="goalCount"><strong>0</strong> / 5</div>
-              <div class="goal-label">applied this week</div>
-              <div class="goal-bar-wrap">
-                <div class="goal-bar" id="goalBar"></div>
+              <div class="goal-details">
+                <div class="goal-count" id="goalCount"><strong>0</strong> / 5</div>
+                <div class="goal-label">applied this week</div>
+                <div class="goal-bar-wrap">
+                  <div class="goal-bar" id="goalBar"></div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="panel">
-      <h2>
-        Add application
-        <button id="toggleForm" type="button">Hide</button>
-      </h2>
+      <div class="panel" id="addAppPanel" data-section-id="addAppPanel">
+        <h2>
+          Add application
+          <button id="toggleForm" type="button">Hide</button>
+        </h2>
       <div id="formBody">
 
         <div class="form-section">
           <div class="form-section-head">
             <span class="form-section-title">Basics</span>
-            <button type="button" id="starToggle" class="star-btn form-star-toggle" title="Mark as dream company">☆
-              Priority</button>
+            <button type="button" id="starToggle" class="star-btn form-star-toggle" title="Mark as favourite">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="star-icon">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+              <span>Priority</span>
+            </button>
             <input type="checkbox" id="f-priority" class="hidden">
           </div>
           <div class="form-grid">
@@ -218,7 +222,7 @@
             </div>
             <div>
               <label>Source</label>
-              <select id="f-source">
+              <select id="f-source" class="styled-select">
                 <option>Wellfound</option>
                 <option>Naukri</option>
                 <option>Internshala</option>
@@ -259,17 +263,23 @@
         </div>
 
         <button class="add-btn" id="addBtn" type="button">+ Add to tracker</button>
-        <div class="duplicate-warning" id="duplicateWarning">⚠️ A company with a similar name already exists. Add
-          anyway?</div>
+        <div class="duplicate-warning" id="duplicateWarning">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <span>A company with a similar name already exists. Add anyway?</span>
+        </div>
       </div>
     </div>
 
-    <div class="panel" id="kanbanPanel">
+    <div class="panel" id="kanbanPanel" data-section-id="kanbanPanel">
       <h2>Pipeline</h2>
       <div class="kanban-board" id="kanbanBoard"></div>
     </div>
 
-    <div class="panel" id="chartsPanel">
+    <div class="panel" id="chartsPanel" data-section-id="chartsPanel">
       <h2>Stats</h2>
       <div class="charts" id="chartsGrid">
         <div class="chart-empty-state hidden" id="chartsEmptyState" style="grid-column: 1 / -1; height: 220px;">
@@ -289,7 +299,7 @@
       </div>
     </div>
 
-    <div class="panel" id="calendarPanel">
+    <div class="panel" id="calendarPanel" data-section-id="calendarPanel">
       <h2>
         Calendar
         <div class="cal-nav">
@@ -308,11 +318,18 @@
       <div id="calendarDayEvents" class="calendar-day-events"></div>
     </div>
 
-    <div class="panel" id="applicationsPanel">
+    <div class="panel" id="applicationsPanel" data-section-id="applicationsPanel">
       <h2>
         Applications
         <div class="csv-actions">
-          <button id="printBtn" type="button" title="Print a clean summary report">🖨️ Print</button>
+          <button id="printBtn" type="button" title="Print a clean summary report">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 6 2 18 2 18 9"/>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+              <rect width="12" height="8" x="6" y="14"/>
+            </svg>
+            <span>Print</span>
+          </button>
           <button id="exportCsvBtn" type="button" title="Download all applications as CSV">Export CSV</button>
           <button id="importCsvBtn" type="button" title="Add applications from a CSV file">Import CSV</button>
           <input id="importCsvFile" type="file" accept=".csv" class="hidden">
@@ -320,7 +337,7 @@
       </h2>
       <div class="bulk-bar hidden" id="bulkBar">
         <span id="bulkCount">0 selected</span>
-        <select id="bulkStatusSelect">
+        <select id="bulkStatusSelect" class="styled-select">
           <option value="">Change status to…</option>
           <option>Applied</option>
           <option>Mail Not Found</option>
@@ -334,8 +351,17 @@
           <option>Ghosted</option>
         </select>
         <button id="bulkApplyBtn" type="button" class="bulk-action-btn">Apply</button>
-        <button id="bulkDeleteBtn" type="button" class="bulk-action-btn bulk-delete-btn">🗑 Delete</button>
-        <button id="bulkCancelBtn" type="button" class="bulk-cancel-btn">✕</button>
+        <button id="bulkDeleteBtn" type="button" class="bulk-action-btn bulk-delete-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+          </svg>
+          <span>Delete</span>
+        </button>
+        <button id="bulkCancelBtn" type="button" class="bulk-cancel-btn" title="Cancel selection">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6 6 18M6 6l12 12"/>
+          </svg>
+        </button>
       </div>
       <input id="searchBox" class="search-box" placeholder="Search company, role, or notes...">
       <div class="filters" id="filters"></div>
@@ -347,84 +373,337 @@
       </div>
     </div>
   </div>
+  </div>
 
   <div class="toast" id="toast"></div>
 
   <!-- ===================== SETTINGS ===================== -->
-  <!-- Left = sections, right = selected section.
-       New section (e.g. Profile) = one [data-settings-tab] button + one [data-settings-pane] block. -->
   <div id="settingsModal" class="shortcut-help settings-overlay hidden">
     <div class="settings-card" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="sheet-grabber" aria-hidden="true"></div>
       <div class="settings-head">
+        <button id="settingsBackBtn" class="settings-back-btn hidden" type="button" aria-label="Back to settings categories">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m15 18-6-6 6-6"/>
+          </svg>
+          <span class="settings-back-label">Settings</span>
+        </button>
         <strong id="settingsTitle">Settings</strong>
-        <button id="closeSettings" class="settings-close" type="button" aria-label="Close">✕</button>
+        <button id="closeSettings" class="settings-close" type="button" aria-label="Close settings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 6 6 18M6 6l12 12"/>
+          </svg>
+        </button>
       </div>
 
-      <div class="settings-layout">
-        <nav class="settings-nav" aria-label="Settings sections">
+      <div class="settings-layout" id="settingsLayout">
+        <nav class="settings-nav" id="settingsNav" aria-label="Settings sections">
           <button type="button" class="settings-nav-btn active" data-settings-tab="shortcuts">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="6" width="20" height="12" rx="2"></rect>
-              <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"></path>
-            </svg>
-            <span>Shortcuts</span>
+            <span class="settings-nav-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+                <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"></path>
+              </svg>
+            </span>
+            <span class="settings-nav-text">
+              <span class="settings-nav-title">Shortcuts</span>
+              <span class="settings-nav-summary">Keyboard quick actions</span>
+            </span>
+            <span class="settings-nav-chevron">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </span>
           </button>
+
           <button type="button" class="settings-nav-btn" data-settings-tab="theme">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-            </svg>
-            <span>Theme</span>
+            <span class="settings-nav-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+              </svg>
+            </span>
+            <span class="settings-nav-text">
+              <span class="settings-nav-title">Theme</span>
+              <span class="settings-nav-summary">Light, dark, system</span>
+            </span>
+            <span class="settings-nav-chevron">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </span>
           </button>
+
           <button type="button" class="settings-nav-btn" data-settings-tab="notifications">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
-              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
-            </svg>
-            <span>Notifications</span>
+            <span class="settings-nav-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+              </svg>
+            </span>
+            <span class="settings-nav-text">
+              <span class="settings-nav-title">Notifications</span>
+              <span class="settings-nav-summary">Follow-up reminders</span>
+            </span>
+            <span class="settings-nav-chevron">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </span>
+          </button>
+
+          <button type="button" class="settings-nav-btn" data-settings-tab="customization">
+            <span class="settings-nav-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>
+              </svg>
+            </span>
+            <span class="settings-nav-text">
+              <span class="settings-nav-title">Customisation</span>
+              <span class="settings-nav-summary" id="navSummaryCustom">Navigation &amp; sections</span>
+            </span>
+            <span class="settings-nav-chevron">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </span>
+          </button>
+
+          <button type="button" class="settings-nav-btn" data-settings-tab="trash-history">
+            <span class="settings-nav-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2M10 11v6M14 11v6"/>
+              </svg>
+            </span>
+            <span class="settings-nav-text">
+              <span class="settings-nav-title">Trash &amp; history</span>
+              <span class="settings-nav-summary" id="navSummaryTrash">Retention &amp; rollback</span>
+            </span>
+            <span class="settings-nav-chevron">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m9 18 6-6-6-6"/>
+              </svg>
+            </span>
           </button>
         </nav>
 
-        <div class="settings-content">
+        <div class="settings-content" id="settingsContent">
+          <!-- Pane: Shortcuts -->
           <section class="settings-pane" data-settings-pane="shortcuts">
-            <h3>Keyboard shortcuts</h3>
-            <p class="settings-pane-desc">Works anywhere on the page, as long as you are not typing in a field.</p>
+            <div class="settings-pane-header">
+              <h3>Keyboard shortcuts</h3>
+              <p class="settings-pane-desc">Works anywhere on the page, as long as you are not typing in an input field.</p>
+            </div>
+            <div class="settings-touch-note hidden" id="shortcutsTouchNote">
+              <span class="app-icon" data-icon="keyboard"></span> Shortcuts require a physical keyboard.
+            </div>
             <div class="shortcut-list">
               <div><kbd>N</kbd><span class="sh-desc">New application</span></div>
               <div><kbd>/</kbd><span class="sh-desc">Focus search</span></div>
               <div><kbd>D</kbd><span class="sh-desc">Toggle dark / light</span></div>
               <div><kbd>R</kbd><span class="sh-desc">Refresh applications</span></div>
-              <div><kbd>?</kbd><span class="sh-desc">Open this list</span></div>
-              <div><kbd>Esc</kbd><span class="sh-desc">Close panels</span></div>
+              <div><kbd>?</kbd><span class="sh-desc">Open shortcuts list</span></div>
+              <div><kbd>Esc</kbd><span class="sh-desc">Close panels and modals</span></div>
             </div>
           </section>
 
+          <!-- Pane: Theme -->
           <section class="settings-pane hidden" data-settings-pane="theme">
-            <h3>Theme</h3>
-            <p class="settings-pane-desc">System follows your device and switches automatically.</p>
-            <div class="theme-row">
-              <button id="settingsLightBtn" class="theme-btn" type="button">
-                <span class="theme-icon">☀️</span> Light
+            <div class="settings-pane-header">
+              <h3>Theme</h3>
+              <p class="settings-pane-desc">System follows your device and switches automatically.</p>
+            </div>
+            <div class="theme-row theme-segmented">
+              <button id="settingsLightBtn" class="theme-btn" type="button" aria-pressed="false">
+                <span class="theme-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+                  </svg>
+                </span>
+                <span>Light</span>
               </button>
-              <button id="settingsDarkBtn" class="theme-btn" type="button">
-                <span class="theme-icon">🌙</span> Dark
+              <button id="settingsDarkBtn" class="theme-btn" type="button" aria-pressed="false">
+                <span class="theme-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+                  </svg>
+                </span>
+                <span>Dark</span>
               </button>
-              <button id="settingsAutoBtn" class="theme-btn" type="button">
-                <span class="theme-icon">💻</span> System
+              <button id="settingsAutoBtn" class="theme-btn" type="button" aria-pressed="false">
+                <span class="theme-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/>
+                  </svg>
+                </span>
+                <span>System</span>
               </button>
             </div>
           </section>
 
+          <!-- Pane: Notifications -->
           <section class="settings-pane hidden" data-settings-pane="notifications">
-            <h3>Notifications</h3>
-            <p class="settings-pane-desc">Browser pop-ups when a follow-up becomes due. The bell in the header
-              always shows what is due, even with this off.</p>
-            <div class="notif-row">
-              <div class="notif-status" id="notifStatus"></div>
-              <button id="settingsNotifBtn" class="notif-switch" type="button" role="switch" aria-checked="false"
-                aria-label="Browser reminders"></button>
+            <div class="settings-pane-header">
+              <h3>Notifications</h3>
+              <p class="settings-pane-desc">Browser reminders when a follow-up becomes due. The header bell always shows pending follow-ups even with reminders off.</p>
+            </div>
+
+            <div class="settings-row notif-setting-row">
+              <div class="settings-row-text">
+                <span class="settings-row-title">Follow-up reminders</span>
+                <span class="settings-row-desc">Get notified when scheduled job follow-ups are due</span>
+              </div>
+              <div class="settings-row-control">
+                <button id="settingsNotifBtn" class="notif-switch" type="button" role="switch" aria-checked="false" aria-label="Follow-up reminders"></button>
+              </div>
+            </div>
+
+            <div id="notifPermissionNotice" class="notif-permission-notice hidden">
+              <div class="notif-notice-head">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="notice-icon">
+                  <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                <strong>Notifications are blocked in your browser</strong>
+              </div>
+              <p class="notif-notice-body">
+                To turn reminders on, click the lock or site settings icon next to the address bar, change <em>Notifications</em> to <strong>Allow</strong>, and refresh the page.
+              </p>
+            </div>
+          </section>
+
+          <!-- Pane: Customisation -->
+          <section class="settings-pane hidden" data-settings-pane="customization">
+            <div class="settings-pane-header">
+              <h3>UI &amp; layout customisation</h3>
+              <p class="settings-pane-desc">Tailor dashboard layout, order sections, or hide unused chrome.</p>
+            </div>
+
+            <div class="settings-group is-open" data-group-id="nav">
+              <button type="button" class="settings-group-header" aria-expanded="true" aria-controls="groupBodyNav">
+                <div class="settings-group-head-left">
+                  <span class="settings-group-icon" data-icon="layout-grid" data-icon-size="16"></span>
+                  <span class="settings-group-title">Navigation</span>
+                </div>
+                <div class="settings-group-head-right">
+                  <span class="settings-group-summary" id="sumCustomNav">Sidebar on, quick nav on</span>
+                  <span class="settings-group-chevron" data-icon="chevron-down" data-icon-size="14"></span>
+                </div>
+              </button>
+              <div class="settings-group-body" id="groupBodyNav">
+                <div class="settings-group-content">
+                  <div class="settings-row">
+                    <div class="settings-row-text">
+                      <span class="settings-row-title">Job links sidebar</span>
+                      <span class="settings-row-desc">Quick job portal launcher rail on the left</span>
+                    </div>
+                    <div class="settings-row-control">
+                      <button id="customSidebarToggle" class="notif-switch" type="button" role="switch" aria-checked="true" aria-label="Toggle sidebar"></button>
+                    </div>
+                  </div>
+                  <div class="settings-row">
+                    <div class="settings-row-text">
+                      <span class="settings-row-title">Quick navigation bar</span>
+                      <span class="settings-row-desc">Top anchor pills to jump between dashboard sections</span>
+                    </div>
+                    <div class="settings-row-control">
+                      <button id="customQuickNavToggle" class="notif-switch" type="button" role="switch" aria-checked="true" aria-label="Toggle quick navigation"></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-group" data-group-id="sections" style="margin-top: 12px;">
+              <button type="button" class="settings-group-header" aria-expanded="false" aria-controls="groupBodySections">
+                <div class="settings-group-head-left">
+                  <span class="settings-group-icon" data-icon="columns-3" data-icon-size="16"></span>
+                  <span class="settings-group-title">Dashboard sections</span>
+                </div>
+                <div class="settings-group-head-right">
+                  <span class="settings-group-summary" id="sumCustomSections">7 of 7 visible</span>
+                  <span class="settings-group-chevron" data-icon="chevron-down" data-icon-size="14"></span>
+                </div>
+              </button>
+              <div class="settings-group-body" id="groupBodySections">
+                <div class="settings-group-content">
+                  <p class="settings-pane-desc" style="margin-bottom: 12px;">Drag handle to reorder sections. Uncheck to hide any section from view.</p>
+                  <div id="sectionReorderList" class="section-reorder-list"></div>
+                  <div class="group-bottom-actions">
+                    <button id="resetLayoutBtn" type="button" class="btn btn-secondary btn-sm">↺ Reset default layout</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Pane: Trash & activity history -->
+          <section class="settings-pane hidden" data-settings-pane="trash-history">
+            <div class="settings-pane-header">
+              <h3>Trash &amp; activity history</h3>
+              <p class="settings-pane-desc">Manage retention policy, restore deleted items, and rollback recent edits.</p>
+            </div>
+
+            <div class="settings-group is-open" data-group-id="trash">
+              <button type="button" class="settings-group-header" aria-expanded="true" aria-controls="groupBodyTrash">
+                <div class="settings-group-head-left">
+                  <span class="settings-group-icon" data-icon="trash-2" data-icon-size="16"></span>
+                  <span class="settings-group-title">Trash</span>
+                </div>
+                <div class="settings-group-head-right">
+                  <span class="settings-group-summary" id="sumTrashCount">0 items</span>
+                  <span class="settings-group-chevron" data-icon="chevron-down" data-icon-size="14"></span>
+                </div>
+              </button>
+              <div class="settings-group-body" id="groupBodyTrash">
+                <div class="settings-group-content">
+                  <div class="settings-row retention-setting-row">
+                    <div class="settings-row-text">
+                      <span class="settings-row-title">Trash retention period</span>
+                      <span class="settings-row-desc">Deleted items are held safely before permanent deletion</span>
+                    </div>
+                    <div class="settings-row-control">
+                      <select id="trashRetentionSelect" class="retention-select styled-select" aria-label="Trash retention period">
+                        <option value="24">24 hours (default)</option>
+                        <option value="72">3 days</option>
+                        <option value="168">7 days (1 week)</option>
+                        <option value="720">30 days (1 month)</option>
+                        <option value="0">Manual only (keep until emptied)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="subpane-head" style="margin-top: 14px;">
+                    <span class="subpane-info">Items held in trash (<span id="trashCountBadge">0</span>)</span>
+                    <button id="emptyTrashBtn" type="button" class="btn btn-destructive btn-sm" disabled>Empty trash</button>
+                  </div>
+                  <div id="trashList" class="trash-list">
+                    <div class="empty-trash-hint">Loading trash…</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-group" data-group-id="history" style="margin-top: 12px;">
+              <button type="button" class="settings-group-header" aria-expanded="false" aria-controls="groupBodyHistory">
+                <div class="settings-group-head-left">
+                  <span class="settings-group-icon" data-icon="history" data-icon-size="16"></span>
+                  <span class="settings-group-title">Activity history</span>
+                </div>
+                <div class="settings-group-head-right">
+                  <span class="settings-group-summary" id="sumHistoryCount">0 entries</span>
+                  <span class="settings-group-chevron" data-icon="chevron-down" data-icon-size="14"></span>
+                </div>
+              </button>
+              <div class="settings-group-body" id="groupBodyHistory">
+                <div class="settings-group-content">
+                  <div class="subpane-head">
+                    <span class="subpane-info">Recent edits &amp; actions (<span id="historyCountBadge">0</span>)</span>
+                    <button id="clearHistoryBtn" type="button" class="btn btn-secondary btn-sm" disabled>Clear history</button>
+                  </div>
+                  <div id="historyList" class="history-list">
+                    <div class="empty-trash-hint">Loading history…</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
         </div>
@@ -436,14 +715,29 @@
   <!-- Kept before confirmModal in the DOM so the confirm dialog shows on top of it -->
   <div id="notesHub" class="shortcut-help notes-hub-overlay hidden">
     <div class="notes-hub-card" role="dialog" aria-modal="true" aria-labelledby="notesHubTitle">
+      <div class="sheet-grabber" aria-hidden="true"></div>
       <div class="notes-hub-head">
         <strong id="notesHubTitle">Mails &amp; notes</strong>
-        <button id="notesHubClose" type="button" class="notes-hub-close" aria-label="Close">✕</button>
+        <button id="notesHubClose" type="button" class="notes-hub-close" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6 6 18M6 6l12 12"/>
+          </svg>
+        </button>
       </div>
 
       <div class="notes-hub-tabs">
-        <button type="button" data-hub-tab="mail" class="active">✉ Mails</button>
-        <button type="button" data-hub-tab="note">📝 Notes</button>
+        <button type="button" data-hub-tab="mail" class="active">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tab-icon">
+            <rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+          </svg>
+          <span>Mails</span>
+        </button>
+        <button type="button" data-hub-tab="note">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tab-icon">
+            <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8M16 13H8M16 17H8"/>
+          </svg>
+          <span>Notes</span>
+        </button>
       </div>
 
       <!-- List view -->
@@ -451,7 +745,7 @@
         <div class="notes-hub-toolbar">
           <div class="hub-fill" id="hubFillRow">
             <label for="snippetFillSelect">Fill {company} / {role} from</label>
-            <select id="snippetFillSelect"></select>
+            <select id="snippetFillSelect" class="styled-select"></select>
           </div>
           <button type="button" id="notesHubNew" class="notes-hub-new">+ New mail</button>
         </div>
@@ -481,20 +775,27 @@
           <!-- <textarea id="hubBody"></textarea> -->
           <div class="hub-editor">
             <div class="hub-editor-bar" id="hubEditorBar">
-              <button type="button" data-cmd="bold" title="Bold (Ctrl+B)"><b>B</b></button>
-              <button type="button" data-cmd="italic" title="Italic (Ctrl+I)"><i>I</i></button>
-              <button type="button" data-cmd="underline" title="Underline (Ctrl+U)"><u>U</u></button>
-              <button type="button" data-cmd="insertOrderedList" title="Numbered list">1.</button>
-              <button type="button" data-cmd="insertUnorderedList" title="Bullet list">•</button>
-              <select id="hubFontSize" title="Text size">
+              <button type="button" data-cmd="bold" title="Bold (Ctrl+B)" aria-label="Bold"><b>B</b></button>
+              <button type="button" data-cmd="italic" title="Italic (Ctrl+I)" aria-label="Italic"><i>I</i></button>
+              <button type="button" data-cmd="underline" title="Underline (Ctrl+U)" aria-label="Underline"><u>U</u></button>
+              <button type="button" data-cmd="insertOrderedList" title="Numbered list" aria-label="Numbered list">1.</button>
+              <button type="button" data-cmd="insertUnorderedList" title="Bullet list" aria-label="Bullet list">•</button>
+              <select id="hubFontSize" title="Text size" aria-label="Text size">
                 <option value="">Size</option>
                 <option value="2">Small</option>
                 <option value="3">Normal</option>
                 <option value="5">Large</option>
                 <option value="6">Huge</option>
               </select>
-              <input type="color" id="hubColor" value="#c13f2b" title="Text colour">
-              <button type="button" data-cmd="removeFormat" title="Clear formatting">T<small>x</small></button>
+              <label class="hub-color-picker-label" title="Text color" aria-label="Text color">
+                <span class="hub-color-swatch-icon" aria-hidden="true">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="m15 4 4 4L7.5 19.5 3 21l1.5-4.5Z"/><path d="m14 5 3 3"/>
+                  </svg>
+                </span>
+                <input type="color" id="hubColor" value="#c13f2b" title="Text color" aria-label="Text color">
+              </label>
+              <button type="button" data-cmd="removeFormat" title="Clear formatting" aria-label="Clear formatting">T<small>x</small></button>
             </div>
             <div id="hubBody" class="hub-rich hub-editor-area" contenteditable="true" role="textbox"
               aria-multiline="true" aria-labelledby="hubBodyLabel"></div>
@@ -523,8 +824,17 @@
   <div id="csvImportModal" class="shortcut-help hidden">
     <div class="shortcut-card csv-import-card">
       <div class="csv-import-head">
-        <strong>📥 Import CSV</strong>
-        <button id="closeCsvImport" type="button" title="Close">✕</button>
+        <strong>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block; vertical-align:middle; margin-right:6px;">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+          </svg>
+          Import CSV
+        </strong>
+        <button id="closeCsvImport" type="button" title="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6 6 18M6 6l12 12"/>
+          </svg>
+        </button>
       </div>
       <div class="csv-import-body">
         <p class="csv-import-desc">Upload a CSV file to add multiple applications at once.</p>
@@ -608,8 +918,13 @@
         </div>
 
         <div class="csv-import-actions">
-          <button id="csvImportFileBtn" type="button" class="csv-import-btn">📁 Choose CSV File</button>
-          <button id="csvDownloadTemplate" type="button" class="csv-template-btn">⬇ Download Template</button>
+          <button id="csvImportFileBtn" type="button" class="csv-import-btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+            </svg>
+            <span>Choose CSV file</span>
+          </button>
+          <button id="csvDownloadTemplate" type="button" class="csv-template-btn">Download template</button>
         </div>
       </div>
     </div>
@@ -644,8 +959,12 @@
   <div id="snoozeModal" class="shortcut-help hidden">
     <div class="shortcut-card snooze-card">
       <div class="snooze-modal-head">
-        <span class="snooze-modal-icon">😴</span>
-        <div class="snooze-modal-title">Snooze Follow-up</div>
+        <span class="snooze-modal-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </span>
+        <div class="snooze-modal-title">Snooze follow-up</div>
         <div class="snooze-modal-subtitle">Choose when to be reminded</div>
       </div>
       <div class="snooze-durations" id="snoozeDurations">
@@ -697,7 +1016,7 @@
 
   <script src="joblinks-icons.js" id="jobLinksIconsScript"></script>
   <script src="joblinks.js"></script>
-  <script src="app.js?v=3"></script>
+  <script src="app.js?v=5"></script>
   <script src="snippets.js"></script>
   <script>
     if ('serviceWorker' in navigator) {

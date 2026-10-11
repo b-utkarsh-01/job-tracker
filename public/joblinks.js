@@ -162,7 +162,7 @@
   function removeButtonHtml(link) {
     if (!link.isCustom) return '';
     return '' +
-      '<button class="sidebar-remove-btn" type="button" title="Remove link" aria-label="Remove ' + esc(link.name) + '">' +
+      '<button class="sidebar-remove-btn" type="button" title="Remove custom link" aria-label="Remove ' + esc(link.name) + '">' +
         '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">' +
           '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>' +
         '</svg>' +
@@ -174,17 +174,22 @@
     // The remove button (only for custom links) lives alongside the link.
     const itemClass = 'sidebar-rail-item' +
       (expanded ? ' sidebar-expanded' : '');
+    const itemTitle = esc(link.name) + (link.isCustom ? ' (Custom link)' : ' (Curated default)');
+    const customBadge = (expanded && link.isCustom)
+      ? '<span class="sidebar-custom-badge" title="Added by you">Custom</span>'
+      : '';
 
     const inner =
       '<div class="sidebar-rail-icon">' + Icons.iconFor(link) + '</div>' +
       '<div class="sidebar-rail-name">' + esc(link.name) + '</div>' +
+      customBadge +
       removeButtonHtml(link);
 
     if (!link.url) {
       // No URL — render a non-interactive placeholder
       return '' +
         '<div class="' + itemClass + '" ' +
-          'title="' + esc(link.name) + '" ' +
+          'title="' + itemTitle + '" ' +
           'data-link-id="' + esc(link._id || '') + '" ' +
           'role="listitem">' +
           inner +
@@ -195,7 +200,7 @@
       '<a class="' + itemClass + ' sidebar-rail-link" ' +
         'href="' + esc(link.url) + '" ' +
         'target="_blank" rel="noopener" ' +
-        'title="' + esc(link.name) + '" ' +
+        'title="' + itemTitle + '" ' +
         'data-link-id="' + esc(link._id || '') + '" ' +
         'role="listitem">' +
         inner +
@@ -301,14 +306,22 @@
     sectionSelect.value = link ? link.section || 'C' : 'C';
 
     updatePreview();
-    modal.classList.remove('hidden');
+    if (window.AppComponents && window.AppComponents.openModal) {
+      window.AppComponents.openModal(modal);
+    } else {
+      modal.classList.remove('hidden');
+    }
     // focus URL first — the name gets suggested from it
-    setTimeout(function () { urlInput.focus(); }, 0);
+    setTimeout(function () { urlInput.focus(); }, 50);
   }
 
   function closeModal() {
     if (!modal || modal.classList.contains('hidden')) return;
-    modal.classList.add('hidden');
+    if (window.AppComponents && window.AppComponents.closeModal) {
+      window.AppComponents.closeModal(modal);
+    } else {
+      modal.classList.add('hidden');
+    }
     editingLinkId = null;
     if (addChip) addChip.focus();
   }
@@ -402,16 +415,47 @@
   Icons.watch(rail);
   Icons.watch(previewIcon);
 
+  const mobileBackdrop = document.getElementById('sidebarMobileBackdrop');
+
+  function setSidebarExpanded(expanded) {
+    if (!sidebar) return;
+    sidebar.classList.toggle('sidebar-expanded', expanded);
+    sidebar.classList.toggle('sidebar-collapsed', !expanded);
+    if (railToggle) railToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+
+    const isMobile = window.innerWidth <= 768;
+    if (document.body) {
+      document.body.classList.toggle('sidebar-expanded-mobile', expanded && isMobile);
+    }
+    renderRail();
+    setTimeout(updateScrollAffordance, 240);
+  }
+
   if (railToggle && sidebar) {
     railToggle.addEventListener('click', function () {
       const expanded = !sidebar.classList.contains('sidebar-expanded');
-      sidebar.classList.toggle('sidebar-expanded', expanded);
-      sidebar.classList.toggle('sidebar-collapsed', !expanded);
-      railToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-      renderRail();
-      setTimeout(updateScrollAffordance, 240);
+      setSidebarExpanded(expanded);
     });
   }
+
+
+  if (mobileBackdrop) {
+    mobileBackdrop.addEventListener('click', function () {
+      setSidebarExpanded(false);
+    });
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && document.body.classList.contains('sidebar-expanded-mobile')) {
+      setSidebarExpanded(false);
+    }
+  });
+
+  window.addEventListener('resize', function () {
+    if (window.innerWidth > 768 && document.body) {
+      document.body.classList.remove('sidebar-expanded-mobile');
+    }
+  }, { passive: true });
 
   const scrollHint = document.getElementById('sidebarScrollHint');
   if (scrollHint && rail) {

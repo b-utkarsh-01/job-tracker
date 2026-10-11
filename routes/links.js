@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const Link = require('../models/Link');
 const Application = require('../models/Application');
+const Trash = require('../models/Trash');
+const History = require('../models/History');
+const { getRetentionExpiresAt } = require('../utils/retention');
 
 // ---------------------------------------------------------------
 // HELPERS
@@ -196,8 +199,28 @@ router.delete('/:id', async (req, res) => {
       return res.status(400).json({ error: 'Default links cannot be deleted' });
     }
 
+    const expiresAt = await getRetentionExpiresAt();
+
+    await Trash.create({
+      entityType: 'link',
+      originalId: link._id,
+      title: link.name,
+      subtitle: `Link: ${link.url} (Section ${link.section})`,
+      data: link.toObject(),
+      expiresAt
+    });
+
+    await History.create({
+      entityType: 'link',
+      entityId: link._id,
+      action: 'delete',
+      title: link.name,
+      description: `Moved link "${link.name}" to Trash`,
+      snapshot: link.toObject()
+    }).catch(e => console.error('History save error:', e.message));
+
     await Link.findByIdAndDelete(req.params.id);
-    res.json({ ok: true });
+    res.json({ ok: true, trashed: true, expiresAt });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -1,5 +1,5 @@
-const CACHE = 'job-tracker-v3';
-const SHELL = ['/', '/index.html', '/style.css', '/app.js', '/manifest.json'];
+const CACHE = 'job-tracker-v7';
+const SHELL = ['/', '/index.html', '/style.css', '/icons.js', '/components.js', '/app.js', '/manifest.json'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)));

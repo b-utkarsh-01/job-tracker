@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const Application = require('../models/Application');
+const Trash = require('../models/Trash');
+const History = require('../models/History');
+const { getRetentionExpiresAt } = require('../utils/retention');
 
 // Whitelist of allowed URI schemes for portal links
 const ALLOWED_SCHEMES = ['http:', 'https:'];
@@ -204,6 +207,9 @@ router.patch('/batch/order', async (req, res) => {
 // PATCH update status / notes / role etc.
 router.patch('/:id', async (req, res) => {
   try {
+    const existing = await Application.findById(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Not found' });
+
     const allowed = [
       'company', 'role', 'source', 'status', 'notes', 'dateApplied', 'portalLink',
       'priority', 'eventDate', 'eventLabel', 'mailCount', 'lastMailedAt', 'nextFollowupDate'
@@ -218,8 +224,34 @@ router.patch('/:id', async (req, res) => {
     if (updates.mailCount !== undefined) {
       updates.mailCount = Math.max(0, Math.floor(Number(updates.mailCount) || 0));
     }
+
+    // Detect changed fields for audit history
+    const changes = [];
+    for (const [key, val] of Object.entries(updates)) {
+      const oldVal = existing[key];
+      const sOld = oldVal instanceof Date ? oldVal.toISOString() : String(oldVal ?? '');
+      const sNew = val instanceof Date ? val.toISOString() : String(val ?? '');
+      if (sOld !== sNew) {
+        changes.push({ field: key, oldValue: oldVal, newValue: val });
+      }
+    }
+
+    if (changes.length > 0) {
+      const desc = changes.map(c => `${c.field}: "${c.oldValue ?? ''}" → "${c.newValue ?? ''}"`).join(', ');
+      await History.create({
+        entityType: 'application',
+        entityId: existing._id,
+        action: 'update',
+        title: existing.company,
+        description: `${existing.company} - ${desc}`,
+        field: changes.length === 1 ? changes[0].field : '',
+        oldValue: changes.length === 1 ? changes[0].oldValue : null,
+        newValue: changes.length === 1 ? changes[0].newValue : null,
+        snapshot: existing.toObject()
+      }).catch(e => console.error('History save error:', e.message));
+    }
+
     const app = await Application.findByIdAndUpdate(req.params.id, updates, { new: true });
-    if (!app) return res.status(404).json({ error: 'Not found' });
     res.json(app);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -251,11 +283,34 @@ router.patch('/:id/followup', async (req, res) => {
   }
 });
 
-// DELETE
+// DELETE (soft-delete to Trash with retention period)
 router.delete('/:id', async (req, res) => {
   try {
+    const app = await Application.findById(req.params.id);
+    if (!app) return res.status(404).json({ error: 'Not found' });
+
+    const expiresAt = await getRetentionExpiresAt();
+
+    await Trash.create({
+      entityType: 'application',
+      originalId: app._id,
+      title: app.company,
+      subtitle: `${app.role || 'No role'} · ${app.status}`,
+      data: app.toObject(),
+      expiresAt
+    });
+
+    await History.create({
+      entityType: 'application',
+      entityId: app._id,
+      action: 'delete',
+      title: app.company,
+      description: `Moved "${app.company} (${app.role || 'No role'})" to Trash`,
+      snapshot: app.toObject()
+    }).catch(e => console.error('History save error:', e.message));
+
     await Application.findByIdAndDelete(req.params.id);
-    res.json({ ok: true });
+    res.json({ ok: true, trashed: true, expiresAt });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

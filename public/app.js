@@ -141,7 +141,17 @@ function renderNotificationPanel() {
   const due = getDueApps();
   // const permission = ('Notification' in window) ? Notification.permission : 'unsupported';
 
-  let html = `<div class="panel-title">Follow-ups due${due.length ? ` · ${due.length}` : ''}</div>`;
+  let html = `
+    <div class="sheet-grabber notif-grabber" aria-hidden="true"></div>
+    <div class="notif-head">
+      <div class="panel-title">Follow-ups due${due.length ? ` · ${due.length}` : ''}</div>
+      <button type="button" class="notif-close-btn" id="notifCloseBtn" aria-label="Close notifications">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>`;
 
   if (due.length) {
     html += due.slice(0, 8).map(a => `
@@ -152,7 +162,14 @@ function renderNotificationPanel() {
     `).join('');
     if (due.length > 8) html += `<div class="panel-muted">+ ${due.length - 8} more due</div>`;
   } else {
-    html += `<div class="panel-muted">Nothing needs a follow-up right now. 🎉</div>`;
+    html += `
+      <div class="panel-muted notif-empty-state">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="notif-check-icon">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+        <span>Nothing needs a follow-up right now.</span>
+      </div>`;
   }
   const canEnable = ('Notification' in window) && Notification.permission !== 'denied' && !remindersOn();
   if (canEnable) {
@@ -163,6 +180,8 @@ function renderNotificationPanel() {
   }
 
   panel.innerHTML = html;
+
+  document.getElementById('notifCloseBtn')?.addEventListener('click', closeNotificationPanel);
 
   panel.querySelectorAll('[data-jump-company]').forEach(item => {
     item.onclick = () => {
@@ -177,13 +196,25 @@ function renderNotificationPanel() {
 
 function toggleNotificationPanel() {
   const panel = document.getElementById('notificationPanel');
+  const bell = document.getElementById('notificationBell');
   if (!panel) return;
-  renderNotificationPanel();
-  panel.classList.toggle('hidden');
+  const isHidden = panel.classList.contains('hidden');
+  if (isHidden) {
+    renderNotificationPanel();
+    panel.classList.remove('hidden');
+    bell?.classList.add('active');
+    document.body.classList.add('notif-open-mobile');
+  } else {
+    closeNotificationPanel();
+  }
 }
 
 function closeNotificationPanel() {
-  document.getElementById('notificationPanel')?.classList.add('hidden');
+  const panel = document.getElementById('notificationPanel');
+  const bell = document.getElementById('notificationBell');
+  panel?.classList.add('hidden');
+  bell?.classList.remove('active');
+  document.body.classList.remove('notif-open-mobile');
 }
 
 function checkFollowupNotifications(forcePanelUpdate = false) {
@@ -232,10 +263,12 @@ function initNotifications() {
   // Check every minute. The page needs to be open for this simple version.
   setInterval(() => checkFollowupNotifications(), NOTIFICATION_CHECK_MS);
 
-  // Close panel when clicking outside
+  // Close panel when clicking outside or clicking backdrop
+  document.getElementById('notifMobileBackdrop')?.addEventListener('click', closeNotificationPanel);
   document.addEventListener('click', (e) => {
     const wrap = document.querySelector('.bell-wrap');
-    if (wrap && !wrap.contains(e.target)) closeNotificationPanel();
+    const isBackdrop = e.target.id === 'notifMobileBackdrop';
+    if ((wrap && !wrap.contains(e.target)) || isBackdrop) closeNotificationPanel();
   });
 }
 
@@ -317,9 +350,12 @@ function getThemeMode() {
 function syncSettingsThemeUI() {
   if (!settingsDarkBtn || !settingsLightBtn || !settingsAutoBtn) return;
   const mode = getThemeMode();
-  settingsDarkBtn.classList.toggle('theme-btn-selected', mode === 'dark');
-  settingsLightBtn.classList.toggle('theme-btn-selected', mode === 'light');
-  settingsAutoBtn.classList.toggle('theme-btn-selected', mode === 'auto');
+  settingsDarkBtn.classList.toggle('active', mode === 'dark');
+  settingsLightBtn.classList.toggle('active', mode === 'light');
+  settingsAutoBtn.classList.toggle('active', mode === 'auto');
+  settingsDarkBtn.setAttribute('aria-pressed', mode === 'dark' ? 'true' : 'false');
+  settingsLightBtn.setAttribute('aria-pressed', mode === 'light' ? 'true' : 'false');
+  settingsAutoBtn.setAttribute('aria-pressed', mode === 'auto' ? 'true' : 'false');
 }
 
 function applyTheme() {
@@ -346,36 +382,124 @@ if (settingsAutoBtn) settingsAutoBtn.onclick = () => setTheme('auto');
 applyTheme();
 
 // ============================================================
-// SETTINGS MODAL (left = sections, right = selected section)
-// To add a section: one [data-settings-tab] button + one
-// [data-settings-pane] block in index.html. No JS change needed.
+// SETTINGS MODAL (Desktop left-nav & Mobile slide-in category sheet)
 // ============================================================
+const settingsBackBtn = document.getElementById('settingsBackBtn');
+const settingsTitleEl = document.getElementById('settingsTitle');
+
+const TAB_TITLES = {
+  'shortcuts': 'Shortcuts',
+  'theme': 'Theme',
+  'notifications': 'Notifications',
+  'customization': 'Customisation',
+  'trash-history': 'Trash & history'
+};
 
 function showSettingsTab(name) {
   if (!settingsModal) return;
+  if (name === 'customisation') name = 'customization';
+  if (!name) name = 'shortcuts';
+  const isMobile = window.innerWidth < 768;
+  const card = settingsModal.querySelector('.settings-card');
+
   settingsModal.querySelectorAll('[data-settings-tab]').forEach(b => {
     b.classList.toggle('active', b.dataset.settingsTab === name);
   });
   settingsModal.querySelectorAll('[data-settings-pane]').forEach(p => {
     p.classList.toggle('hidden', p.dataset.settingsPane !== name);
   });
+
+  if (isMobile) {
+    if (card) card.classList.add('is-viewing-pane');
+    if (settingsBackBtn) settingsBackBtn.classList.remove('hidden');
+    if (settingsTitleEl) settingsTitleEl.textContent = TAB_TITLES[name] || 'Settings';
+  } else {
+    if (card) card.classList.remove('is-viewing-pane');
+    if (settingsBackBtn) settingsBackBtn.classList.add('hidden');
+    if (settingsTitleEl) settingsTitleEl.textContent = 'Settings';
+  }
+
+  // Touch shortcuts notice
+  const touchNote = document.getElementById('shortcutsTouchNote');
+  if (touchNote) {
+    const isTouchOnly = ('ontouchstart' in window || navigator.maxTouchPoints > 0) && isMobile;
+    touchNote.classList.toggle('hidden', !isTouchOnly);
+  }
+
+  if (name === 'customization') renderCustomizationSettings();
+  if (name === 'trash-history') loadTrashAndHistory();
 }
 
 function openSettings(tab) {
   if (!settingsModal) return;
+  if (tab === 'customisation') tab = 'customization';
   closeNotificationPanel();
-  if (typeof tab === 'string') showSettingsTab(tab);
+  const isMobile = window.innerWidth < 768;
+  const card = settingsModal.querySelector('.settings-card');
+
+  if (isMobile) {
+    if (typeof tab === 'string' && tab) {
+      showSettingsTab(tab);
+    } else {
+      // Mobile default: open on category list
+      if (card) card.classList.remove('is-viewing-pane');
+      if (settingsBackBtn) settingsBackBtn.classList.add('hidden');
+      if (settingsTitleEl) settingsTitleEl.textContent = 'Settings';
+      const activeBtn = settingsModal.querySelector('[data-settings-tab].active');
+      const activeTab = activeBtn ? activeBtn.dataset.settingsTab : 'shortcuts';
+      settingsModal.querySelectorAll('[data-settings-pane]').forEach(p => {
+        p.classList.toggle('hidden', p.dataset.settingsPane !== activeTab);
+      });
+    }
+  } else {
+    if (card) card.classList.remove('is-viewing-pane');
+    if (settingsBackBtn) settingsBackBtn.classList.add('hidden');
+    if (settingsTitleEl) settingsTitleEl.textContent = 'Settings';
+    const activeTab = (typeof tab === 'string' && tab) ? tab : (settingsModal.querySelector('[data-settings-tab].active')?.dataset.settingsTab || 'shortcuts');
+    showSettingsTab(activeTab);
+  }
+
   syncSettingsThemeUI();
   syncSettingsNotifUI();
-  settingsModal.classList.remove('hidden');
+  renderCustomizationSettings();
+  loadTrashAndHistory();
+
+  if (window.AppComponents && window.AppComponents.initSettingsGroups) {
+    window.AppComponents.initSettingsGroups(settingsModal);
+  }
+
+  if (window.AppComponents && window.AppComponents.openModal) {
+    window.AppComponents.openModal(settingsModal);
+  } else {
+    settingsModal.classList.remove('hidden');
+  }
 }
 
 function closeSettingsFn() {
-  settingsModal?.classList.add('hidden');
+  if (window.AppComponents && window.AppComponents.closeModal) {
+    window.AppComponents.closeModal(settingsModal);
+  } else {
+    settingsModal?.classList.add('hidden');
+  }
+  const card = settingsModal?.querySelector('.settings-card');
+  setTimeout(() => {
+    if (card) card.classList.remove('is-viewing-pane');
+    if (settingsBackBtn) settingsBackBtn.classList.add('hidden');
+    if (settingsTitleEl) settingsTitleEl.textContent = 'Settings';
+  }, 220);
 }
 
 if (settingsBtn) settingsBtn.onclick = () => openSettings();
 document.getElementById('closeSettings')?.addEventListener('click', closeSettingsFn);
+
+if (settingsBackBtn) {
+  settingsBackBtn.addEventListener('click', () => {
+    const card = settingsModal?.querySelector('.settings-card');
+    if (card) card.classList.remove('is-viewing-pane');
+    settingsBackBtn.classList.add('hidden');
+    if (settingsTitleEl) settingsTitleEl.textContent = 'Settings';
+  });
+}
 
 settingsModal?.addEventListener('click', (e) => {
   if (e.target.id === 'settingsModal') closeSettingsFn();
@@ -385,43 +509,18 @@ settingsModal?.querySelectorAll('[data-settings-tab]').forEach(btn => {
   btn.addEventListener('click', () => showSettingsTab(btn.dataset.settingsTab));
 });
 
-// function syncSettingsNotifUI() {
-//   if (!settingsNotifBtn || !notifStatus) return;
-//   const perm = ('Notification' in window) ? Notification.permission : 'unsupported';
-//   if (perm === 'granted') {
-//     settingsNotifBtn.textContent = '✅ Reminders on';
-//     settingsNotifBtn.className = 'confirm-btn confirm-add';
-//     notifStatus.textContent = 'Browser reminders are enabled.';
-//   } else if (perm === 'denied') {
-//     settingsNotifBtn.textContent = 'Blocked';
-//     settingsNotifBtn.className = 'confirm-btn confirm-cancel';
-//     notifStatus.textContent = 'Notifications are blocked. Allow them in your browser site settings.';
-//   } else if (perm === 'unsupported') {
-//     settingsNotifBtn.textContent = 'Not supported';
-//     settingsNotifBtn.className = 'confirm-btn confirm-cancel';
-//     notifStatus.textContent = 'This browser does not support notifications.';
-//   } else {
-//     settingsNotifBtn.textContent = 'Enable reminders';
-//     settingsNotifBtn.className = 'confirm-btn confirm-add';
-//     notifStatus.textContent = 'Reminders are off.';
-//   }
-// }
-
 function syncSettingsNotifUI() {
-  if (!settingsNotifBtn || !notifStatus) return;
+  if (!settingsNotifBtn) return;
   const perm = ('Notification' in window) ? Notification.permission : 'unsupported';
   const on = remindersOn();
 
   settingsNotifBtn.setAttribute('aria-checked', on ? 'true' : 'false');
-  settingsNotifBtn.disabled = perm === 'unsupported' || perm === 'denied';
+  settingsNotifBtn.disabled = perm === 'unsupported';
   settingsNotifBtn.title = on ? 'Turn off reminders' : 'Turn on reminders';
 
-  if (perm === 'unsupported') {
-    notifStatus.textContent = 'This browser does not support notifications.';
-  } else if (perm === 'denied') {
-    notifStatus.textContent = 'Notifications are blocked. Allow them in your browser site settings.';
-  } else {
-    notifStatus.textContent = on ? 'Reminders are on.' : 'Reminders are off.';
+  const notice = document.getElementById('notifPermissionNotice');
+  if (notice) {
+    notice.classList.toggle('hidden', perm !== 'denied');
   }
 }
 
@@ -432,7 +531,9 @@ if (settingsNotifBtn) {
       return;
     }
     if (Notification.permission === 'denied') {
-      showToast('Notifications are blocked. Enable them in browser settings.', 'error');
+      const notice = document.getElementById('notifPermissionNotice');
+      if (notice) notice.classList.remove('hidden');
+      showToast('Notifications are blocked in your browser settings', 'error');
       return;
     }
 
@@ -458,6 +559,733 @@ if (settingsNotifBtn) {
     syncSettingsNotifUI();
     renderNotificationPanel();
   };
+}
+
+// ============================================================
+// UI CUSTOMIZATION & DASHBOARD LAYOUT REORDER
+// ============================================================
+const UI_CUSTOM_KEY = 'job_tracker_ui_customization';
+const DEFAULT_SECTIONS = [
+  { id: 'stats', name: 'Overview cards', iconKey: 'layout-grid' },
+  { id: 'weeklyGoalPanel', name: 'Weekly goal', iconKey: 'target' },
+  { id: 'addAppPanel', name: 'Add application form', iconKey: 'plus-circle' },
+  { id: 'kanbanPanel', name: 'Pipeline board', iconKey: 'columns-3' },
+  { id: 'chartsPanel', name: 'Stats & charts', iconKey: 'pie-chart' },
+  { id: 'calendarPanel', name: 'Calendar & follow-ups', iconKey: 'calendar' },
+  { id: 'applicationsPanel', name: 'Applications table', iconKey: 'table' }
+];
+
+let uiCustomization = {
+  sidebarVisible: true,
+  quickNavVisible: true,
+  sectionsOrder: DEFAULT_SECTIONS.map(s => s.id),
+  hiddenSections: []
+};
+
+async function initUiCustomization() {
+  try {
+    const saved = localStorage.getItem(UI_CUSTOM_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed && typeof parsed === 'object') {
+        uiCustomization = { ...uiCustomization, ...parsed };
+      }
+    }
+  } catch (e) { /* ignore */ }
+  applyUiCustomization();
+}
+
+function applyUiCustomization() {
+  document.body.classList.toggle('sidebar-hidden', !uiCustomization.sidebarVisible);
+
+  const qNav = document.getElementById('quickNav');
+  if (qNav) {
+    qNav.classList.toggle('hidden', !uiCustomization.quickNavVisible);
+  }
+
+  const container = document.getElementById('dashboardSections');
+  if (container) {
+    const validIds = DEFAULT_SECTIONS.map(s => s.id);
+    const order = [...new Set([...(uiCustomization.sectionsOrder || []), ...validIds])];
+
+    order.forEach(secId => {
+      const el = document.getElementById(secId);
+      if (el) {
+        container.appendChild(el);
+        const isHidden = (uiCustomization.hiddenSections || []).includes(secId);
+        el.classList.toggle('section-hidden', isHidden);
+      }
+    });
+  }
+
+  const quickLinks = document.querySelectorAll('.quick-nav-link');
+  quickLinks.forEach(link => {
+    const href = link.getAttribute('href');
+    if (href && href.startsWith('#')) {
+      const targetId = href.substring(1);
+      const isHidden = (uiCustomization.hiddenSections || []).includes(targetId);
+      link.style.display = isHidden ? 'none' : '';
+    }
+  });
+
+  // Update Settings group live summaries if accordion is present
+  updateSettingsLiveSummaries();
+}
+
+function updateSettingsLiveSummaries() {
+  const navSum = document.getElementById('sumCustomNav');
+  if (navSum) {
+    const sb = uiCustomization.sidebarVisible ? 'Sidebar on' : 'Sidebar off';
+    const qn = uiCustomization.quickNavVisible ? 'quick nav on' : 'quick nav off';
+    navSum.textContent = `${sb}, ${qn}`;
+  }
+  const secSum = document.getElementById('sumCustomSections');
+  if (secSum) {
+    const total = DEFAULT_SECTIONS.length;
+    const hiddenCount = (uiCustomization.hiddenSections || []).length;
+    const visibleCount = Math.max(0, total - hiddenCount);
+    secSum.textContent = `${visibleCount} of ${total} visible`;
+  }
+}
+
+async function saveUiCustomization() {
+  localStorage.setItem(UI_CUSTOM_KEY, JSON.stringify(uiCustomization));
+  applyUiCustomization();
+  try {
+    await fetch('/api/settings/uiCustomization', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: uiCustomization })
+    });
+  } catch (e) {
+    console.error('Failed to sync uiCustomization to backend', e);
+  }
+}
+
+function renderCustomizationSettings() {
+  const sidebarBtn = document.getElementById('customSidebarToggle');
+  if (sidebarBtn) {
+    sidebarBtn.setAttribute('aria-checked', uiCustomization.sidebarVisible ? 'true' : 'false');
+  }
+
+  const quickNavBtn = document.getElementById('customQuickNavToggle');
+  if (quickNavBtn) {
+    quickNavBtn.setAttribute('aria-checked', uiCustomization.quickNavVisible ? 'true' : 'false');
+  }
+
+  const listEl = document.getElementById('sectionReorderList');
+  if (!listEl) return;
+
+  const validIds = DEFAULT_SECTIONS.map(s => s.id);
+  const order = [...new Set([...(uiCustomization.sectionsOrder || []), ...validIds])];
+  uiCustomization.sectionsOrder = order;
+
+  const rowsHtml = order.map(secId => {
+    const meta = DEFAULT_SECTIONS.find(s => s.id === secId) || { id: secId, name: secId, iconKey: 'layout-grid' };
+    const isHidden = (uiCustomization.hiddenSections || []).includes(secId);
+    const iconSvg = window.AppIcons ? window.AppIcons.get(meta.iconKey || 'layout-grid', { size: 16 }) : '';
+
+    return `
+      <div class="section-reorder-item ${isHidden ? 'is-hidden-section' : ''}" data-reorder-id="${secId}">
+        <div class="section-item-left">
+          <div class="section-drag-handle" title="Drag to reorder" aria-label="Drag to reorder" role="button" tabindex="0">
+            ${window.AppIcons ? window.AppIcons.get('grip-vertical', { size: 14 }) : '::'}
+          </div>
+          <span class="section-item-icon">${iconSvg}</span>
+          <span class="section-item-name">${esc(meta.name)}</span>
+        </div>
+        <div class="section-item-right">
+          <label class="section-vis-label" title="${isHidden ? 'Show section' : 'Hide section'}">
+            <input type="checkbox" class="bulk-check section-vis-checkbox" data-section-vis="${secId}" ${!isHidden ? 'checked' : ''} aria-label="Toggle ${esc(meta.name)} visibility">
+          </label>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  listEl.innerHTML = `
+    <div class="section-reorder-header">
+      <span class="reorder-col-section">Section</span>
+      <span class="reorder-col-visible">Visible</span>
+    </div>
+    <div class="section-reorder-rows">
+      ${rowsHtml}
+    </div>
+  `;
+
+  initSectionDragAndDrop(listEl.querySelector('.section-reorder-rows') || listEl);
+  updateSettingsLiveSummaries();
+
+  listEl.querySelectorAll('[data-section-vis]').forEach(cb => {
+    cb.onchange = (e) => {
+      e.stopPropagation();
+      const secId = cb.dataset.sectionVis;
+      const isVisible = cb.checked;
+      let hidden = [...(uiCustomization.hiddenSections || [])];
+      if (isVisible) {
+        hidden = hidden.filter(id => id !== secId);
+      } else {
+        if (!hidden.includes(secId)) hidden.push(secId);
+      }
+      uiCustomization.hiddenSections = hidden;
+      saveUiCustomization();
+      renderCustomizationSettings();
+      showToast(isVisible ? 'Section enabled' : 'Section hidden', 'success');
+    };
+  });
+}
+
+// ------------------------------------------------------------
+// Drag & Drop Engine with Real-Time In-Flow Drop Placeholder Gap
+// Floating card follows cursor/touch with an empty slot opening up dynamically
+// ------------------------------------------------------------
+let sectionDragGesture = null;
+
+function initSectionDragAndDrop(listEl) {
+  if (!listEl || listEl._dragInitialized) return;
+  listEl._dragInitialized = true;
+
+  listEl.addEventListener('pointerdown', (e) => {
+    if (sectionDragGesture) return;
+    if (e.button !== 0) return;
+    
+    // Only initiate drag when user presses the dedicated drag handle
+    const handle = e.target.closest('.section-drag-handle');
+    if (!handle) return;
+    if (e.target.closest('input, label, button:not(.section-drag-handle), a')) return;
+
+    const card = e.target.closest('.section-reorder-item');
+    if (!card || !listEl.contains(card)) return;
+
+    const rect = card.getBoundingClientRect();
+    const grabX = e.clientX - rect.left;
+    const grabY = e.clientY - rect.top;
+
+    sectionDragGesture = {
+      card,
+      rect,
+      grabX,
+      grabY,
+      startX: e.clientX,
+      startY: e.clientY,
+      isDragging: false,
+      placeholder: null
+    };
+
+    const onPointerMove = (moveEv) => {
+      if (!sectionDragGesture) return;
+
+      if (!sectionDragGesture.isDragging) {
+        const dist = Math.hypot(moveEv.clientX - sectionDragGesture.startX, moveEv.clientY - sectionDragGesture.startY);
+        if (dist < 4) return;
+
+        sectionDragGesture.isDragging = true;
+        listEl.classList.add('is-dragging-active');
+
+        // Create the visible gap placeholder where the item will drop
+        const placeholder = document.createElement('div');
+        placeholder.className = 'section-reorder-placeholder';
+        placeholder.style.height = `${rect.height}px`;
+        placeholder.innerHTML = `
+          <span class="placeholder-text">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 5v14M5 12l7 7 7-7"/>
+            </svg>
+            Drop here
+          </span>
+        `;
+        sectionDragGesture.placeholder = placeholder;
+
+        // Insert placeholder into the list at the card's original location
+        card.before(placeholder);
+
+        // Turn card into floating element attached to document.body
+        card.classList.add('is-floating-drag');
+        card.style.width = `${rect.width}px`;
+        card.style.height = `${rect.height}px`;
+        card.style.left = `${moveEv.clientX - grabX}px`;
+        card.style.top = `${moveEv.clientY - grabY}px`;
+        document.body.appendChild(card);
+
+        if (navigator.vibrate) navigator.vibrate(12);
+      }
+
+      if (moveEv.cancelable) moveEv.preventDefault();
+
+      // Track cursor / touch
+      card.style.left = `${moveEv.clientX - grabX}px`;
+      card.style.top = `${moveEv.clientY - grabY}px`;
+
+      // Auto-scroll list if pointer is near edges
+      const listRect = listEl.getBoundingClientRect();
+      if (moveEv.clientY < listRect.top + 32 && listEl.scrollTop > 0) {
+        listEl.scrollTop -= 7;
+      } else if (moveEv.clientY > listRect.bottom - 32 && listEl.scrollTop < listEl.scrollHeight - listEl.clientHeight) {
+        listEl.scrollTop += 7;
+      }
+
+      // Hit-test other items to move the placeholder (creates the dynamic gap)
+      const siblings = Array.from(listEl.querySelectorAll('.section-reorder-item'));
+      if (!siblings.length) return;
+
+      let targetSibling = null;
+      let placeAfter = false;
+
+      for (const sib of siblings) {
+        const box = sib.getBoundingClientRect();
+        const midY = box.top + box.height / 2;
+        if (moveEv.clientY < midY) {
+          targetSibling = sib;
+          placeAfter = false;
+          break;
+        } else if (moveEv.clientY <= box.bottom) {
+          targetSibling = sib;
+          placeAfter = true;
+          break;
+        }
+      }
+
+      const ph = sectionDragGesture.placeholder;
+      if (!ph) return;
+
+      if (targetSibling) {
+        if (placeAfter) {
+          if (targetSibling.nextElementSibling !== ph) {
+            listEl.insertBefore(ph, targetSibling.nextElementSibling);
+          }
+        } else {
+          if (ph.nextElementSibling !== targetSibling) {
+            listEl.insertBefore(ph, targetSibling);
+          }
+        }
+      } else {
+        const firstBox = siblings[0].getBoundingClientRect();
+        const lastBox = siblings[siblings.length - 1].getBoundingClientRect();
+        if (moveEv.clientY <= firstBox.top) {
+          if (listEl.firstElementChild !== ph) {
+            listEl.insertBefore(ph, listEl.firstElementChild);
+          }
+        } else if (moveEv.clientY >= lastBox.bottom) {
+          if (listEl.lastElementChild !== ph) {
+            listEl.appendChild(ph);
+          }
+        }
+      }
+    };
+
+    const cleanupListeners = () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerCancel);
+      window.removeEventListener('touchmove', onTouchMove);
+    };
+
+    const onTouchMove = (te) => {
+      if (sectionDragGesture && sectionDragGesture.isDragging && te.cancelable) {
+        te.preventDefault();
+      }
+    };
+
+    const onPointerUp = () => {
+      if (!sectionDragGesture) return;
+      const g = sectionDragGesture;
+      sectionDragGesture = null;
+      cleanupListeners();
+
+      listEl.classList.remove('is-dragging-active');
+
+      if (g.isDragging && g.placeholder && g.placeholder.parentNode) {
+        const targetRect = g.placeholder.getBoundingClientRect();
+
+        // Smooth glide transition into the placeholder gap slot
+        g.card.style.transition = 'top 0.16s cubic-bezier(0.2, 0, 0, 1), left 0.16s cubic-bezier(0.2, 0, 0, 1), transform 0.16s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.16s ease';
+        g.card.style.left = `${targetRect.left}px`;
+        g.card.style.top = `${targetRect.top}px`;
+        g.card.style.transform = 'scale(1) rotate(0deg)';
+        g.card.style.boxShadow = 'none';
+
+        setTimeout(() => {
+          g.placeholder.replaceWith(g.card);
+          g.card.classList.remove('is-floating-drag');
+          g.card.removeAttribute('style');
+
+          const newOrder = Array.from(listEl.querySelectorAll('.section-reorder-item'))
+            .map(el => el.dataset.reorderId)
+            .filter(Boolean);
+
+          uiCustomization.sectionsOrder = newOrder;
+          saveUiCustomization();
+          renderCustomizationSettings();
+          showToast('Dashboard order updated', 'success');
+        }, 170);
+      } else {
+        if (g.placeholder && g.placeholder.parentNode) {
+          g.placeholder.replaceWith(g.card);
+        }
+        g.card.classList.remove('is-floating-drag');
+        g.card.removeAttribute('style');
+        renderCustomizationSettings();
+      }
+    };
+
+    const onPointerCancel = () => {
+      if (!sectionDragGesture) return;
+      const g = sectionDragGesture;
+      sectionDragGesture = null;
+      cleanupListeners();
+
+      listEl.classList.remove('is-dragging-active');
+      if (g.placeholder && g.placeholder.parentNode) {
+        g.placeholder.replaceWith(g.card);
+      }
+      g.card.classList.remove('is-floating-drag');
+      g.card.removeAttribute('style');
+      renderCustomizationSettings();
+    };
+
+    window.addEventListener('pointermove', onPointerMove, { passive: false });
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerCancel);
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+  });
+}
+
+document.getElementById('customSidebarToggle')?.addEventListener('click', () => {
+  uiCustomization.sidebarVisible = !uiCustomization.sidebarVisible;
+  saveUiCustomization();
+  renderCustomizationSettings();
+  showToast(uiCustomization.sidebarVisible ? 'Sidebar shown' : 'Sidebar hidden', 'success');
+});
+
+document.getElementById('customQuickNavToggle')?.addEventListener('click', () => {
+  uiCustomization.quickNavVisible = !uiCustomization.quickNavVisible;
+  saveUiCustomization();
+  renderCustomizationSettings();
+  showToast(uiCustomization.quickNavVisible ? 'Quick navigation shown' : 'Quick navigation hidden', 'success');
+});
+
+document.getElementById('resetLayoutBtn')?.addEventListener('click', async () => {
+  const ok = await askConfirm('Reset layout to default order and show all sections?', {
+        confirmText: 'Reset', confirmClass: 'confirm-danger'
+      });
+  if (!ok) return;
+  uiCustomization.sectionsOrder = DEFAULT_SECTIONS.map(s => s.id);
+  uiCustomization.hiddenSections = [];
+  uiCustomization.sidebarVisible = true;
+  uiCustomization.quickNavVisible = true;
+  saveUiCustomization();
+  renderCustomizationSettings();
+  showToast('Default layout restored', 'success');
+});
+
+// ============================================================
+// TRASH, RETENTION POLICY & HISTORY ROLLBACK
+// ============================================================
+let trashItems = [];
+let historyItems = [];
+
+async function loadTrashAndHistory() {
+  await Promise.all([loadRetentionPolicy(), loadTrash(), loadHistory()]);
+}
+
+async function loadRetentionPolicy() {
+  const select = document.getElementById('trashRetentionSelect');
+  if (!select) return;
+  try {
+    const res = await fetch('/api/settings/retentionPolicy');
+    const data = await res.json();
+    if (data && data.value && typeof data.value.hours !== 'undefined') {
+      select.value = String(data.value.hours);
+    }
+  } catch (e) { /* ignore */ }
+}
+
+async function saveRetentionPolicy(hours) {
+  try {
+    await fetch('/api/settings/retentionPolicy', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: { hours: Number(hours) } })
+    });
+    showToast('Retention policy updated', 'success');
+  } catch (e) {
+    showToast('Failed to update retention policy', 'error');
+  }
+}
+
+document.getElementById('trashRetentionSelect')?.addEventListener('change', (e) => {
+  saveRetentionPolicy(e.target.value);
+});
+
+document.getElementById('subtabTrashBtn')?.addEventListener('click', () => {
+  document.getElementById('subtabTrashBtn').classList.add('active');
+  document.getElementById('subtabHistoryBtn').classList.remove('active');
+  document.getElementById('subpaneTrash').classList.remove('hidden');
+  document.getElementById('subpaneHistory').classList.add('hidden');
+  loadTrash();
+});
+
+document.getElementById('subtabHistoryBtn')?.addEventListener('click', () => {
+  document.getElementById('subtabHistoryBtn').classList.add('active');
+  document.getElementById('subtabTrashBtn').classList.remove('active');
+  document.getElementById('subpaneHistory').classList.remove('hidden');
+  document.getElementById('subpaneTrash').classList.add('hidden');
+  loadHistory();
+});
+
+async function loadTrash() {
+  const listEl = document.getElementById('trashList');
+  const badgeEl = document.getElementById('trashCountBadge');
+  const emptyBtn = document.getElementById('emptyTrashBtn');
+  if (!listEl) return;
+
+  try {
+    const res = await fetch('/api/trash');
+    trashItems = await res.json();
+    if (badgeEl) badgeEl.textContent = trashItems.length;
+    if (emptyBtn) {
+      emptyBtn.disabled = !trashItems.length;
+      emptyBtn.style.opacity = trashItems.length ? '1' : '0.5';
+      emptyBtn.style.pointerEvents = trashItems.length ? 'auto' : 'none';
+    }
+
+    if (!trashItems.length) {
+      listEl.innerHTML = window.AppComponents
+        ? window.AppComponents.emptyStateHtml({
+            icon: 'trash-2',
+            title: 'Trash is empty',
+            description: 'Deleted items will be held here safely until retention expires.'
+          })
+        : '<div class="empty-trash-hint">Trash is empty. Deleted items will be held here safely.</div>';
+      return;
+    }
+
+    listEl.innerHTML = trashItems.map(item => {
+      const entityClass = `pill-${item.entityType}`;
+      const deletedAgo = formatRelativeTime(new Date(item.deletedAt));
+      const expiresText = item.expiresAt
+        ? `Expires ${formatTimeUntil(new Date(item.expiresAt))}`
+        : 'Kept until emptied';
+      const clockIcon = window.AppIcons ? window.AppIcons.get('clock', { size: 12 }) : '';
+      const restoreIcon = window.AppIcons ? window.AppIcons.get('rotate-ccw', { size: 12 }) : '';
+      const delIcon = window.AppIcons ? window.AppIcons.get('trash-2', { size: 13 }) : '✕';
+
+      return `
+        <div class="trash-item-card" data-trash-id="${item._id}">
+          <div class="trash-item-main">
+            <div class="trash-item-title-row">
+              <span class="entity-pill ${entityClass}">${item.entityType}</span>
+              <span class="trash-item-title">${esc(item.title)}</span>
+            </div>
+            ${item.subtitle ? `<div class="trash-item-sub">${esc(item.subtitle)}</div>` : ''}
+            <div class="trash-item-meta">
+              <span>Deleted ${deletedAgo}</span>
+              <span>·</span>
+              <span>${clockIcon} ${expiresText}</span>
+            </div>
+          </div>
+          <div class="trash-item-actions">
+            <button type="button" class="btn-restore" data-restore-trash="${item._id}" title="Restore back to tracker">${restoreIcon} Restore</button>
+            <button type="button" class="btn-del-perm" data-perm-del="${item._id}" title="Permanently delete" aria-label="Permanently delete">${delIcon}</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    listEl.querySelectorAll('[data-restore-trash]').forEach(btn => {
+      btn.onclick = async () => {
+        const id = btn.dataset.restoreTrash;
+        await restoreTrashItem(id);
+      };
+    });
+
+    listEl.querySelectorAll('[data-perm-del]').forEach(btn => {
+      btn.onclick = async () => {
+        const id = btn.dataset.permDel;
+        const ok = await askConfirm('Permanently delete this item? This cannot be undone.');
+        if (!ok) return;
+        await fetch(`/api/trash/${id}`, { method: 'DELETE' });
+        showToast('Item permanently deleted', 'success');
+        await loadTrash();
+      };
+    });
+  } catch (e) {
+    listEl.innerHTML = '<div class="empty-trash-hint">Failed to load trash items.</div>';
+  } finally {
+    updateTrashHistorySummaries();
+  }
+}
+
+async function restoreTrashItem(id) {
+  try {
+    const res = await fetch(`/api/trash/${id}/restore`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Restore failed');
+
+    showToast(`Restored "${data.title}"`, 'success');
+    await loadTrash();
+    await loadHistory();
+    await loadApps();
+    await loadStats();
+    await loadCalendar();
+    if (typeof loadLinks === 'function') loadLinks();
+  } catch (e) {
+    showToast(e.message, 'error');
+  }
+}
+
+document.getElementById('emptyTrashBtn')?.addEventListener('click', async () => {
+  if (!trashItems.length) {
+    showToast('Trash is already empty', 'info');
+    return;
+  }
+  const ok = await askConfirm(`Empty Trash? This will permanently remove all ${trashItems.length} deleted items.`);
+  if (!ok) return;
+  try {
+    await fetch('/api/trash', { method: 'DELETE' });
+    showToast('Trash emptied', 'success');
+    await loadTrash();
+  } catch (e) {
+    showToast('Failed to empty trash', 'error');
+  }
+});
+
+async function loadHistory() {
+  const listEl = document.getElementById('historyList');
+  const badgeEl = document.getElementById('historyCountBadge');
+  const clearBtn = document.getElementById('clearHistoryBtn');
+  if (!listEl) return;
+
+  try {
+    const res = await fetch('/api/history');
+    historyItems = await res.json();
+    if (badgeEl) badgeEl.textContent = historyItems.length;
+    if (clearBtn) {
+      clearBtn.disabled = !historyItems.length;
+      clearBtn.style.opacity = historyItems.length ? '1' : '0.5';
+      clearBtn.style.pointerEvents = historyItems.length ? 'auto' : 'none';
+    }
+
+    if (!historyItems.length) {
+      listEl.innerHTML = window.AppComponents
+        ? window.AppComponents.emptyStateHtml({
+            icon: 'history',
+            title: 'No recent activity',
+            description: 'Changes, edits, and deletions will appear here.'
+          })
+        : '<div class="empty-trash-hint">No recent activity. Changes and edits will show here.</div>';
+      return;
+    }
+
+    listEl.innerHTML = historyItems.map(item => {
+      const entityClass = `pill-${item.entityType}`;
+      const actionClass = `action-${item.action}`;
+      const timeStr = formatRelativeTime(new Date(item.createdAt));
+      const canRollback = item.action === 'update' || item.action === 'delete';
+      const rollbackIcon = window.AppIcons ? window.AppIcons.get('rotate-ccw', { size: 12 }) : '';
+
+      return `
+        <div class="history-item-card" data-history-id="${item._id}">
+          <div class="history-item-main">
+            <div class="history-item-title-row">
+              <span class="entity-pill ${entityClass}">${item.entityType}</span>
+              <span class="action-pill ${actionClass}">${item.action}</span>
+              <span class="history-item-title">${esc(item.title)}</span>
+            </div>
+            <div class="history-item-sub">${esc(item.description)}</div>
+            <div class="trash-item-meta">
+              <span>${timeStr}</span>
+            </div>
+          </div>
+          <div class="history-item-actions">
+            ${canRollback ? `<button type="button" class="btn-rollback" data-rollback-id="${item._id}" title="Revert this change">${rollbackIcon} Rollback</button>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    listEl.querySelectorAll('[data-rollback-id]').forEach(btn => {
+      btn.onclick = async () => {
+        const id = btn.dataset.rollbackId;
+        await rollbackHistoryItem(id);
+      };
+    });
+  } catch (e) {
+    listEl.innerHTML = '<div class="empty-trash-hint">Failed to load history items.</div>';
+  } finally {
+    updateTrashHistorySummaries();
+  }
+}
+
+function updateTrashHistorySummaries() {
+  const badgeTrash = document.getElementById('trashCountBadge');
+  if (badgeTrash) badgeTrash.textContent = trashItems.length;
+  const badgeHist = document.getElementById('historyCountBadge');
+  if (badgeHist) badgeHist.textContent = historyItems.length;
+
+  const sumTrash = document.getElementById('sumTrashCount');
+  if (sumTrash) sumTrash.textContent = `${trashItems.length} item${trashItems.length === 1 ? '' : 's'}`;
+  const sumHist = document.getElementById('sumHistoryCount');
+  if (sumHist) sumHist.textContent = `${historyItems.length} entr${historyItems.length === 1 ? 'y' : 'ies'}`;
+
+  const navSumTrash = document.getElementById('navSummaryTrash');
+  if (navSumTrash) navSumTrash.textContent = `${trashItems.length} in trash, ${historyItems.length} logs`;
+}
+
+async function rollbackHistoryItem(id) {
+  try {
+    const res = await fetch(`/api/history/${id}/rollback`, { method: 'POST' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Rollback failed');
+
+    showToast(data.message || 'Change rolled back', 'success');
+    await loadHistory();
+    await loadTrash();
+    await loadApps();
+    await loadStats();
+    await loadCalendar();
+    if (typeof loadLinks === 'function') loadLinks();
+  } catch (e) {
+    showToast(e.message, 'error');
+  }
+}
+
+document.getElementById('clearHistoryBtn')?.addEventListener('click', async () => {
+  if (!historyItems.length) {
+    showToast('History is already empty', 'info');
+    return;
+  }
+  const ok = await askConfirm('Clear all activity history?');
+  if (!ok) return;
+  try {
+    await fetch('/api/history', { method: 'DELETE' });
+    showToast('History cleared', 'success');
+    await loadHistory();
+  } catch (e) {
+    showToast('Failed to clear history', 'error');
+  }
+});
+
+function formatRelativeTime(date) {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+function formatTimeUntil(date) {
+  const diffMs = date.getTime() - Date.now();
+  if (diffMs <= 0) return 'soon';
+  const minutes = Math.floor(diffMs / (60 * 1000));
+  if (minutes < 60) return `in ${minutes}m`;
+  const hours = Math.floor(minutes / (60 * 60 * 1000));
+  if (hours < 24) return `in ${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `in ${days}d`;
 }
 
 // ============================================================
@@ -780,7 +1608,7 @@ function renderStatCards(stats) {
 
     <div class="stat priority stat-clickable" data-stat-filter="Priority">
       <div class="n">${stats.priorityCount || 0}</div>
-      <div class="l">⭐ Favourites</div>
+      <div class="l">${window.AppIcons ? window.AppIcons.get('star', { size: 13, className: 'inline-icon' }) : ''} Favourites</div>
     </div>
 
     <div class="stat stat-clickable" data-stat-filter="NonPriority">
@@ -1123,9 +1951,11 @@ function kanbanCard(a) {
   const applied = a.dateApplied
     ? new Date(a.dateApplied).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     : '';
-  const priorityStar = a.priority ? '<span class="kanban-card-priority">★</span> ' : '';
+  const starIcon = window.AppIcons ? window.AppIcons.get('star-filled', { size: 12 }) : '★';
+  const mailIcon = window.AppIcons ? window.AppIcons.get('mail', { size: 11 }) : '✉';
+  const priorityStar = a.priority ? `<span class="kanban-card-priority">${starIcon}</span> ` : '';
   const dateSpan = applied ? `<span class="kanban-card-date">${applied}</span>` : '';
-  const mailSpan = a.mailCount ? `<span class="kanban-card-source">✉ ×${a.mailCount}</span>` : '';
+  const mailSpan = a.mailCount ? `<span class="kanban-card-source">${mailIcon} ×${a.mailCount}</span>` : '';
   return `<div class="kanban-card" draggable="true" data-app-id="${a._id}">
     <div class="kanban-card-company">
       ${priorityStar}${esc(a.company)}
@@ -1324,13 +2154,19 @@ function renderTable() {
                 <div class="radio-row">
                   <label><input type="radio" name="fu-${a._id}" value="yes"> Yes</label>
                   <label><input type="radio" name="fu-${a._id}" value="no"> No</label>
-                  <button class="snooze-btn" data-snooze="${a._id}" title="Remind me later">⏰ Snooze</button>
+                  <button class="snooze-btn" data-snooze="${a._id}" title="Remind me later">${window.AppIcons ? window.AppIcons.get('clock', { size: 12 }) : ''} Snooze</button>
                 </div>
               </div>
             `;
           } else {
             followupHtml = `<span class="followup ok">next check ${shortDate(a.nextFollowupDate)}</span>`;
           }
+
+          const starIcon = window.AppIcons
+            ? (a.priority ? window.AppIcons.get('star-filled', { size: 14 }) : window.AppIcons.get('star', { size: 14 }))
+            : (a.priority ? '★' : '☆');
+          const calIcon = window.AppIcons ? window.AppIcons.get('calendar', { size: 12 }) : '';
+          const mailIcon = window.AppIcons ? window.AppIcons.get('mail', { size: 12 }) : '';
 
           return `
             <tr data-id="${a._id}" ${isSelected ? 'class="bulk-selected"' : ''}>
@@ -1350,15 +2186,15 @@ function renderTable() {
 
               <td data-label="Company">
                 <div class="company-row">
-                  <button class="star-btn ${a.priority ? 'starred' : ''}" data-star="${a._id}" title="Toggle priority">${a.priority ? '★' : '☆'}</button>
+                  <button class="star-btn ${a.priority ? 'starred' : ''}" data-star="${a._id}" title="Toggle priority" aria-label="${a.priority ? 'Remove priority' : 'Mark priority'}">${starIcon}</button>
                   <div class="company editable-cell" data-inline-field="company" data-inline-id="${a._id}">${esc(a.company)}</div>
                 </div>
 
-                <div class="role editable-cell" data-inline-field="role" data-inline-id="${a._id}">${esc(a.role || '')}</div>
+                <div class="role editable-cell ${!a.role ? 'is-empty' : ''}" data-inline-field="role" data-inline-id="${a._id}" title="Double-click to set role">${a.role ? esc(a.role) : '<span class="empty-field-placeholder">+ Add role</span>'}</div>
 
                 ${a.eventDate ? `
                   <div class="cal-event-label">
-                    📅 ${esc(a.eventLabel || 'Event')} · ${shortDate(a.eventDate)}
+                    ${calIcon} <span>${esc(a.eventLabel || 'Event')} · ${shortDate(a.eventDate)}</span>
                   </div>
                 ` : ''}
 
@@ -1369,7 +2205,7 @@ function renderTable() {
                 <div>
                   <div class="mail-chip ${mails ? 'has-mails' : ''}" title="Cold mails sent">
                     <button type="button" data-mail="${a._id}" data-delta="-1" aria-label="One less mail">−</button>
-                    <span class="mail-chip-label">✉ ${mails}${mails && a.lastMailedAt ? ' · ' + shortDate(a.lastMailedAt) : ''}</span>
+                    <span class="mail-chip-label">${mailIcon} <span>${mails}${mails && a.lastMailedAt ? ' · ' + shortDate(a.lastMailedAt) : ''}</span></span>
                     <button type="button" data-mail="${a._id}" data-delta="1" aria-label="Mail sent">+</button>
                   </div>
                 </div>
@@ -1519,7 +2355,7 @@ function renderTable() {
       if (!appData) return;
 
       const currentVal = appData[field] || '';
-      cell.innerHTML = '<input class="inline-edit" type="text" value="' + esc(currentVal) + '">';
+      cell.innerHTML = '<input class="inline-edit" type="text" value="' + esc(currentVal) + '" placeholder="' + (field === 'role' ? 'e.g. SWE Intern' : 'Company name') + '">';
       const input = cell.querySelector('input');
       input.focus();
       input.select();
@@ -1529,7 +2365,8 @@ function renderTable() {
         const newVal = input.value.trim();
         // Company can't be empty; unchanged or cancelled = just restore
         if (cancelled || newVal === currentVal || (field === 'company' && !newVal)) {
-          cell.textContent = currentVal;
+          cell.innerHTML = currentVal ? esc(currentVal) : (field === 'role' ? '<span class="empty-field-placeholder">+ Add role</span>' : '');
+          cell.classList.toggle('is-empty', !currentVal);
           return;
         }
         await fetch(API + '/' + id, {
@@ -1990,7 +2827,10 @@ document.getElementById('starToggle')?.addEventListener('click', () => {
   const btn = document.getElementById('starToggle');
   checkbox.checked = !checkbox.checked;
   btn.classList.toggle('starred', checkbox.checked);
-  btn.textContent = checkbox.checked ? '★ Priority' : '☆ Priority';
+  const icon = window.AppIcons
+    ? (checkbox.checked ? window.AppIcons.get('star-filled', { size: 14 }) : window.AppIcons.get('star', { size: 14 }))
+    : (checkbox.checked ? '★' : '☆');
+  btn.innerHTML = `${icon} Priority`;
 });
 
 // Interview / OA deadline fields in the add form
@@ -2404,9 +3244,14 @@ function renderCalendarDayEvents() {
   const dateObj = new Date(Number(dateParts[0]), Number(dateParts[1]) - 1, Number(dateParts[2]));
   const dateFmt = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 
+  const calIcon = window.AppIcons ? window.AppIcons.get('calendar', { size: 14 }) : '';
+  const clockIcon = window.AppIcons ? window.AppIcons.get('clock', { size: 12 }) : '';
+  const checkIcon = window.AppIcons ? window.AppIcons.get('check', { size: 12 }) : '';
+  const xIcon = window.AppIcons ? window.AppIcons.get('x', { size: 12 }) : '✕';
+
   let html = `
     <div class="cal-day-events-head">
-      <span class="cal-day-events-title">📅 ${esc(dateFmt)}</span>
+      <span class="cal-day-events-title">${calIcon} ${esc(dateFmt)}</span>
       ${isToday ? '<span class="cal-day-events-badge">Today</span>' : ''}
     </div>
   `;
@@ -2416,7 +3261,7 @@ function renderCalendarDayEvents() {
     html += `
       <div class="cal-overdue-banner">
         <div class="cal-overdue-banner-text">
-          <span class="cal-overdue-badge">⚡ ${overdueSummary.total} Overdue</span>
+          <span class="cal-overdue-badge">${clockIcon} ${overdueSummary.total} Overdue</span>
           <span class="cal-overdue-desc">Missed from earlier dates — carried forward to Today</span>
         </div>
         <button type="button" class="cal-shift-all-btn" id="calShiftAllBtn">Shift all to Today ↗</button>
@@ -2443,7 +3288,7 @@ function renderCalendarDayEvents() {
         </div>
         <div class="cal-followup-actions">
           <button type="button" class="cal-act-btn cal-btn-done" data-cal-app-done="${a._id}" title="Mark followed up (schedules next in 3 days)">
-            ✓ Done
+            ${checkIcon} Done
           </button>
           <button type="button" class="cal-act-btn cal-btn-snooze" data-cal-app-snooze="${a._id}" title="Snooze for 3 days">
             +3d
@@ -2485,7 +3330,7 @@ function renderCalendarDayEvents() {
               Shift to Today ↗
             </button>
           ` : ''}
-          <button class="cal-task-del-btn" data-task-del="${t._id}" title="Delete">✕</button>
+          <button class="cal-task-del-btn" data-task-del="${t._id}" title="Delete">${xIcon}</button>
         </div>
       </div>
     `).join('');
@@ -2517,7 +3362,7 @@ function renderCalendarDayEvents() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ answered: true })
         });
-        showToast(`Followed up with ${app ? app.company : 'company'}! Next check in 3 days 🎉`, 'success');
+        showToast(`Followed up with ${app ? app.company : 'company'}! Next check in 3 days`, 'success');
         await loadApps();
         await loadStats();
         await loadCalendar();
@@ -2565,7 +3410,7 @@ function renderCalendarDayEvents() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ nextFollowupDate: todayAtMidnight })
         });
-        showToast(`Follow-up with ${app ? app.company : 'company'} shifted to Today! 📅`, 'success');
+        showToast(`Follow-up with ${app ? app.company : 'company'} shifted to Today`, 'success');
         await loadApps();
         await loadCalendar();
       } catch (err) {
@@ -2588,7 +3433,7 @@ function renderCalendarDayEvents() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ date: todayStr })
         });
-        showToast(`Reminder "${task ? task.title : ''}" shifted to Today! 📅`, 'success');
+        showToast(`Reminder "${task ? task.title : ''}" shifted to Today`, 'success');
         await loadCalendar();
       } catch (err) {
         showToast('Could not shift reminder', 'error');
@@ -2634,7 +3479,7 @@ function renderCalendarDayEvents() {
         ];
 
         await Promise.all(ops);
-        showToast(`Shifted ${count} missed item${count > 1 ? 's' : ''} to Today! 📅`, 'success');
+        showToast(`Shifted ${count} missed item${count > 1 ? 's' : ''} to Today`, 'success');
         await loadApps();
         await loadCalendar();
       } catch (err) {
@@ -2740,6 +3585,11 @@ async function loadSettings() {
       weeklyGoal = parseInt(settings.weeklyGoal, 10) || 5;
       renderWeeklyGoal();
     }
+    if (settings.uiCustomization && typeof settings.uiCustomization === 'object') {
+      uiCustomization = { ...uiCustomization, ...settings.uiCustomization };
+      localStorage.setItem(UI_CUSTOM_KEY, JSON.stringify(uiCustomization));
+      applyUiCustomization();
+    }
   } catch (e) { /* ignore — use default */ }
 }
 
@@ -2747,7 +3597,71 @@ async function loadSettings() {
 // START
 // ============================================================
 
+initUiCustomization();
 loadApps();
 loadStats();
 loadCalendar();
 loadSettings();
+
+function initQuickNavScrollspy() {
+  const nav = document.getElementById('quickNav');
+  if (!nav || !window.IntersectionObserver) return;
+  const links = Array.from(nav.querySelectorAll('.quick-nav-link'));
+  const targets = links.map(l => {
+    const href = l.getAttribute('href');
+    const id = href && href.startsWith('#') ? href.substring(1) : null;
+    return id ? { link: l, el: document.getElementById(id) } : null;
+  }).filter(t => t && t.el);
+
+  if (!targets.length) return;
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const item = targets.find(t => t.el === entry.target);
+        if (item) {
+          links.forEach(l => l.classList.remove('active'));
+          item.link.classList.add('active');
+          item.link.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+      }
+    });
+  }, { threshold: 0.2, rootMargin: '-70px 0px -40% 0px' });
+
+  targets.forEach(t => observer.observe(t.el));
+}
+
+initQuickNavScrollspy();
+
+if (window.AppComponents) {
+  window.AppComponents.initCustomSelects();
+  window.AppComponents.initSettingsGroups();
+}
+if (window.AppIcons && typeof window.AppIcons.replaceAll === 'function') {
+  window.AppIcons.replaceAll();
+}
+
+// URL query / hash hook for direct modal opening (e.g. testing / deep linking)
+try {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('modal') === 'settings' || window.location.hash.startsWith('#settings')) {
+    const targetTab = urlParams.get('tab') || (window.location.hash.includes('/') ? window.location.hash.split('/')[1] : null);
+    setTimeout(() => {
+      openSettings(targetTab);
+      if (window.location.hash.includes('expand-sections')) {
+        setTimeout(() => {
+          document.querySelector('[data-settings-group="sections"] .settings-group-header')?.click();
+        }, 250);
+      }
+    }, 150);
+  }
+  if (urlParams.get('modal') === 'notes') {
+    setTimeout(() => { document.getElementById('notesFab')?.click(); }, 250);
+  }
+  if (urlParams.get('drawer') === '1') {
+    setTimeout(() => { document.getElementById('sidebarToggle')?.click(); }, 250);
+  }
+  if (urlParams.get('modal') === 'link') {
+    setTimeout(() => { document.getElementById('sidebarAddChip')?.click(); }, 250);
+  }
+} catch (e) {}

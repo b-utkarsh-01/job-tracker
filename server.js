@@ -9,6 +9,8 @@ const tasksRouter = require('./routes/tasks');
 const settingsRouter = require('./routes/settings');
 const linksRouter = require('./routes/links');
 const snippetsRouter = require('./routes/snippets');
+const trashRouter = require('./routes/trash');
+const historyRouter = require('./routes/history');
 const Application = require('./models/Application');
 const Link = require('./models/Link');
 
@@ -72,6 +74,14 @@ app.use('/api/tasks', tasksRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/links', linksRouter);
 app.use('/api/snippets', snippetsRouter);
+app.use('/api/trash', trashRouter);
+app.use('/api/history', historyRouter);
+
+const { purgeExpiredTrash } = require('./utils/retention');
+// Periodically purge expired trash every 1 hour
+setInterval(() => {
+  purgeExpiredTrash().catch(err => console.error('Periodic trash purge failed:', err.message));
+}, 60 * 60 * 1000);
 
 // One-time cleanup: existing applications may have a nextFollowupDate that
 // still carries the exact time-of-day they were created at (a past bug),

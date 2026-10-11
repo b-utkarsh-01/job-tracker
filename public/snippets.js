@@ -191,10 +191,11 @@
   // Copies formatted HTML + a plain-text version together. Gmail / Outlook /
   // Docs pick the formatted one, plain inputs (WhatsApp etc.) get the text.
   async function copyRich(html, text) {
+    const emailStyledHtml = `<div style="font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.5; color: #222222; background-color: #ffffff;">${html}</div>`;
     try {
       if (navigator.clipboard && window.ClipboardItem) {
         await navigator.clipboard.write([new ClipboardItem({
-          'text/html': new Blob([html], { type: 'text/html' }),
+          'text/html': new Blob([emailStyledHtml], { type: 'text/html' }),
           'text/plain': new Blob([text], { type: 'text/plain' })
         })]);
         return;
@@ -203,8 +204,8 @@
 
     const box = document.createElement('div');
     box.contentEditable = 'true';
-    box.innerHTML = html;
-    box.style.cssText = 'position:fixed;left:-9999px;top:0;color:#222;font:14px Arial,sans-serif;white-space:normal';
+    box.innerHTML = emailStyledHtml;
+    box.style.cssText = 'position:fixed;left:-9999px;top:0;color:#222222;background-color:#ffffff;font:14px Arial,sans-serif;white-space:normal';
     document.body.appendChild(box);
     const range = document.createRange();
     range.selectNodeContents(box);
@@ -235,10 +236,22 @@
         <div class="hub-mail-head">
           <span class="hub-card-title">${esc(subject)}</span>
           <span class="hub-actions">
-            <button type="button" data-act="copy-subject">Copy subject</button>
             <button type="button" data-act="copy-body" class="hub-primary">Copy mail</button>
-            <button type="button" data-act="edit">Edit</button>
-            <button type="button" data-act="del">Delete</button>
+            <div class="hub-action-dropdown">
+              <button type="button" class="hub-more-btn" data-act="more" aria-label="More actions" title="More actions">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="5" cy="12" r="1.5"/>
+                </svg>
+              </button>
+              <div class="hub-menu hidden">
+                <button type="button" data-act="copy-subject">Copy subject</button>
+                <button type="button" data-act="edit">Edit</button>
+                <button type="button" data-act="del" class="hub-del-btn">Delete</button>
+              </div>
+            </div>
+            <button type="button" data-act="copy-subject" class="hub-desktop-only">Copy subject</button>
+            <button type="button" data-act="edit" class="hub-desktop-only">Edit</button>
+            <button type="button" data-act="del" class="hub-desktop-only">Delete</button>
           </span>
         </div>
         <div class="hub-body hub-rich" title="Click to expand / collapse">${htmlOf(s)}</div>
@@ -254,7 +267,8 @@
         <div class="hub-note-foot">
           <span class="hub-date">${shortDate(s.updatedAt || s.createdAt)}</span>
           <span class="hub-actions">
-            <button type="button" data-act="copy-body">Copy</button>
+            <button type="button" data-act="copy-body" class="hub-primary">Copy</button>
+            <button type="button" data-act="edit">Edit</button>
             <button type="button" data-act="del">Delete</button>
           </span>
         </div>
@@ -346,6 +360,19 @@
       showToast('Resume link copied', 'success');
     } else if (act === 'edit') {
       openEditor(s);
+    } else if (act === 'more') {
+      const dropdown = btn.closest('.hub-action-dropdown');
+      const menu = dropdown?.querySelector('.hub-menu');
+      if (menu) {
+        menu.classList.toggle('hidden');
+        const closeMenu = (e) => {
+          if (!dropdown.contains(e.target)) {
+            menu.classList.add('hidden');
+            document.removeEventListener('click', closeMenu);
+          }
+        };
+        setTimeout(() => document.addEventListener('click', closeMenu), 0);
+      }
     } else if (act === 'del') {
       const name = s.subject || s.title || 'this note';
       const ok = await askConfirm(`Delete "${name}"?`);

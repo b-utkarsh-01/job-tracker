@@ -2,6 +2,9 @@ const express = require('express');
 const mongoose = require('mongoose');
 const router = express.Router();
 const Snippet = require('../models/Snippet');
+const Trash = require('../models/Trash');
+const History = require('../models/History');
+const { getRetentionExpiresAt } = require('../utils/retention');
 
 // Resume links are rendered as clickable links, so only http/https is allowed.
 function isSafeUrl(str) {
@@ -87,8 +90,32 @@ router.post('/bulk-delete', async (req, res) => {
   try {
     const ids = validIds(req.body.ids);
     if (!ids.length) return res.status(400).json({ error: 'ids required' });
+
+    const snippets = await Snippet.find({ _id: { $in: ids } });
+    const expiresAt = await getRetentionExpiresAt();
+
+    for (const s of snippets) {
+      const name = s.subject || s.title || (s.type === 'mail' ? 'Mail template' : 'Note');
+      await Trash.create({
+        entityType: 'snippet',
+        originalId: s._id,
+        title: name,
+        subtitle: `${s.type === 'mail' ? 'Mail' : 'Note'}${s.resumeLink ? ' · Has resume' : ''}`,
+        data: s.toObject(),
+        expiresAt
+      });
+      await History.create({
+        entityType: 'snippet',
+        entityId: s._id,
+        action: 'delete',
+        title: name,
+        description: `Moved ${s.type} "${name}" to Trash`,
+        snapshot: s.toObject()
+      }).catch(e => console.error('History save error:', e.message));
+    }
+
     const result = await Snippet.deleteMany({ _id: { $in: ids } });
-    res.json({ ok: true, deleted: result.deletedCount });
+    res.json({ ok: true, deleted: result.deletedCount, trashed: true, expiresAt });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -96,6 +123,9 @@ router.post('/bulk-delete', async (req, res) => {
 
 router.patch('/:id', async (req, res) => {
   try {
+    const existing = await Snippet.findById(req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Not found' });
+
     const updates = {};
     ['title', 'subject', 'body', 'bodyHtml', 'resumeLink', 'resumeNote'].forEach(f => {
       if (req.body[f] !== undefined) updates[f] = str(req.body[f]);
@@ -108,10 +138,20 @@ router.patch('/:id', async (req, res) => {
       }
     }
 
+    // Record history
+    const name = existing.subject || existing.title || 'Snippet';
+    await History.create({
+      entityType: 'snippet',
+      entityId: existing._id,
+      action: 'update',
+      title: name,
+      description: `Updated ${existing.type}: "${name}"`,
+      snapshot: existing.toObject()
+    }).catch(e => console.error('History save error:', e.message));
+
     const snippet = await Snippet.findByIdAndUpdate(
       req.params.id, updates, { new: true, runValidators: true }
     );
-    if (!snippet) return res.status(404).json({ error: 'Not found' });
     res.json(snippet);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -120,8 +160,32 @@ router.patch('/:id', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   try {
+    const snippet = await Snippet.findById(req.params.id);
+    if (!snippet) return res.status(404).json({ error: 'Not found' });
+
+    const expiresAt = await getRetentionExpiresAt();
+    const name = snippet.subject || snippet.title || (snippet.type === 'mail' ? 'Mail template' : 'Note');
+
+    await Trash.create({
+      entityType: 'snippet',
+      originalId: snippet._id,
+      title: name,
+      subtitle: `${snippet.type === 'mail' ? 'Mail' : 'Note'}${snippet.resumeLink ? ' · Has resume' : ''}`,
+      data: snippet.toObject(),
+      expiresAt
+    });
+
+    await History.create({
+      entityType: 'snippet',
+      entityId: snippet._id,
+      action: 'delete',
+      title: name,
+      description: `Moved ${snippet.type} "${name}" to Trash`,
+      snapshot: snippet.toObject()
+    }).catch(e => console.error('History save error:', e.message));
+
     await Snippet.findByIdAndDelete(req.params.id);
-    res.json({ ok: true });
+    res.json({ ok: true, trashed: true, expiresAt });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

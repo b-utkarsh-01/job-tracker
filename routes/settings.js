@@ -27,7 +27,7 @@ router.get('/:key', async (req, res) => {
 
 // PATCH upsert a setting (create or update)
 // Only whitelisted keys are allowed to prevent arbitrary key injection.
-const ALLOWED_KEYS = ['weeklyGoal'];
+const ALLOWED_KEYS = ['weeklyGoal', 'uiCustomization', 'retentionPolicy'];
 router.patch('/:key', async (req, res) => {
   try {
     const key = req.params.key;
@@ -41,6 +41,18 @@ router.patch('/:key', async (req, res) => {
       const num = Number(value);
       if (!Number.isFinite(num) || num < 1 || num > 100) {
         return res.status(400).json({ error: 'weeklyGoal must be a number between 1 and 100' });
+      }
+    } else if (key === 'retentionPolicy') {
+      if (typeof value !== 'object' || value === null) {
+        return res.status(400).json({ error: 'retentionPolicy must be an object' });
+      }
+      const hours = Number(value.hours);
+      if (!Number.isFinite(hours) || hours < 0) {
+        return res.status(400).json({ error: 'retentionPolicy.hours must be non-negative' });
+      }
+    } else if (key === 'uiCustomization') {
+      if (typeof value !== 'object' || value === null) {
+        return res.status(400).json({ error: 'uiCustomization must be an object' });
       }
     }
 
