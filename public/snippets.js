@@ -380,6 +380,8 @@
       await fetch(`${API_SNIPPETS}/${s._id}`, { method: 'DELETE' });
       showToast('Deleted', 'success');
       load();
+      if (typeof window.loadHistory === 'function') window.loadHistory();
+      if (typeof window.loadTrash === 'function') window.loadTrash();
         } else if (s.type === 'note') {
       if (openTimer && lastTapId === s._id) {
         // Second tap on the same note = start multi-select
@@ -447,6 +449,8 @@
     selectMode = false;
     selected.clear();
     await load();
+    if (typeof window.loadHistory === 'function') window.loadHistory();
+    if (typeof window.loadTrash === 'function') window.loadTrash();
   });
 
     // ---------------- notes: hold to select, drag to reorder ----------------
@@ -780,6 +784,7 @@
       editingId = null;
       showList();
       await load();
+      if (typeof window.loadHistory === 'function') window.loadHistory();
     } catch (e) {
       showToast('Could not save', 'error');
     } finally {
@@ -852,4 +857,5 @@
   }, true);
 
   window.renderSnippetFill();
+  window.loadSnippets = load;
 })();

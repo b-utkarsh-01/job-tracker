@@ -95,7 +95,7 @@ router.post('/bulk-delete', async (req, res) => {
     const expiresAt = await getRetentionExpiresAt();
 
     for (const s of snippets) {
-      const name = s.subject || s.title || (s.type === 'mail' ? 'Mail template' : 'Note');
+      const name = s.subject || s.title || (s.type === 'mail' ? 'Mail template' : ((s.body || '').replace(/\s+/g, ' ').slice(0, 30) || 'Note'));
       await Trash.create({
         entityType: 'snippet',
         originalId: s._id,
@@ -121,6 +121,13 @@ router.post('/bulk-delete', async (req, res) => {
   }
 });
 
+function formatSnippetVal(v) {
+  if (v === null || v === undefined) return '';
+  const s = String(v).replace(/\s+/g, ' ').trim();
+  if (!s) return '(empty)';
+  return s.length > 50 ? s.slice(0, 47) + '...' : s;
+}
+
 router.patch('/:id', async (req, res) => {
   try {
     const existing = await Snippet.findById(req.params.id);
@@ -138,16 +145,77 @@ router.patch('/:id', async (req, res) => {
       }
     }
 
-    // Record history
-    const name = existing.subject || existing.title || 'Snippet';
-    await History.create({
-      entityType: 'snippet',
-      entityId: existing._id,
-      action: 'update',
-      title: name,
-      description: `Updated ${existing.type}: "${name}"`,
-      snapshot: existing.toObject()
-    }).catch(e => console.error('History save error:', e.message));
+    // Detect changed fields for audit history
+    const changes = [];
+    if (existing.type === 'mail') {
+      if (updates.subject !== undefined) {
+        const oldSubject = str(existing.subject).trim();
+        const newSubject = str(updates.subject).trim();
+        if (oldSubject !== newSubject) {
+          changes.push({ field: 'subject', label: 'Subject', oldValue: existing.subject, newValue: updates.subject });
+        }
+      }
+      if (updates.body !== undefined) {
+        const oldBody = str(existing.body).trim();
+        const newBody = str(updates.body).trim();
+        if (oldBody !== newBody) {
+          changes.push({ field: 'body', label: 'Mail body', oldValue: existing.body, newValue: updates.body });
+        } else if (updates.bodyHtml !== undefined && str(existing.bodyHtml).trim() !== str(updates.bodyHtml).trim()) {
+          changes.push({ field: 'bodyHtml', label: 'Styling', oldValue: 'Original format', newValue: 'Updated format' });
+        }
+      }
+      if (updates.resumeLink !== undefined) {
+        const oldLink = str(existing.resumeLink).trim();
+        const newLink = str(updates.resumeLink).trim();
+        if (oldLink !== newLink) {
+          changes.push({ field: 'resumeLink', label: 'Resume link', oldValue: existing.resumeLink || '', newValue: updates.resumeLink || '' });
+        }
+      }
+      if (updates.resumeNote !== undefined) {
+        const oldNote = str(existing.resumeNote).trim();
+        const newNote = str(updates.resumeNote).trim();
+        if (oldNote !== newNote) {
+          changes.push({ field: 'resumeNote', label: 'Resume format', oldValue: existing.resumeNote || '', newValue: updates.resumeNote || '' });
+        }
+      }
+    } else {
+      // type === 'note'
+      if (updates.title !== undefined) {
+        const oldTitle = str(existing.title).trim();
+        const newTitle = str(updates.title).trim();
+        if (oldTitle !== newTitle) {
+          changes.push({ field: 'title', label: 'Title', oldValue: existing.title || '', newValue: updates.title || '' });
+        }
+      }
+      if (updates.body !== undefined) {
+        const oldBody = str(existing.body).trim();
+        const newBody = str(updates.body).trim();
+        if (oldBody !== newBody) {
+          changes.push({ field: 'body', label: 'Note body', oldValue: existing.body, newValue: updates.body });
+        } else if (updates.bodyHtml !== undefined && str(existing.bodyHtml).trim() !== str(updates.bodyHtml).trim()) {
+          changes.push({ field: 'bodyHtml', label: 'Styling', oldValue: 'Original format', newValue: 'Updated format' });
+        }
+      }
+    }
+
+    const itemTitle = existing.type === 'mail'
+      ? ((updates.subject || existing.subject || 'Mail template').trim() || 'Mail template')
+      : ((updates.title || existing.title || (updates.body || existing.body || '').replace(/\s+/g, ' ').slice(0, 30) || 'Note').trim() || 'Note');
+
+    if (changes.length > 0) {
+      const desc = changes.map(c => `${c.label}: "${formatSnippetVal(c.oldValue)}" → "${formatSnippetVal(c.newValue)}"`).join(', ');
+      await History.create({
+        entityType: 'snippet',
+        entityId: existing._id,
+        action: 'update',
+        title: itemTitle,
+        description: desc,
+        field: changes.length === 1 ? changes[0].field : '',
+        oldValue: changes.length === 1 ? changes[0].oldValue : null,
+        newValue: changes.length === 1 ? changes[0].newValue : null,
+        snapshot: existing.toObject()
+      }).catch(e => console.error('History save error:', e.message));
+    }
 
     const snippet = await Snippet.findByIdAndUpdate(
       req.params.id, updates, { new: true, runValidators: true }
@@ -164,7 +232,7 @@ router.delete('/:id', async (req, res) => {
     if (!snippet) return res.status(404).json({ error: 'Not found' });
 
     const expiresAt = await getRetentionExpiresAt();
-    const name = snippet.subject || snippet.title || (snippet.type === 'mail' ? 'Mail template' : 'Note');
+    const name = snippet.subject || snippet.title || (snippet.type === 'mail' ? 'Mail template' : ((snippet.body || '').replace(/\s+/g, ' ').slice(0, 30) || 'Note'));
 
     await Trash.create({
       entityType: 'snippet',

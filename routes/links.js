@@ -146,6 +146,13 @@ router.post('/', async (req, res) => {
 // PUT /api/links/:id
 // Allowed edits: name, url, icon, section, order, archived
 // ---------------------------------------------------------------
+function formatLinkVal(v) {
+  if (v === null || v === undefined) return '';
+  const s = String(v).replace(/\s+/g, ' ').trim();
+  if (!s) return '(empty)';
+  return s.length > 50 ? s.slice(0, 47) + '...' : s;
+}
+
 router.put('/:id', async (req, res) => {
   try {
     const link = await Link.findById(req.params.id);
@@ -171,6 +178,45 @@ router.put('/:id', async (req, res) => {
 
     if (updates.icon !== undefined && typeof updates.icon === 'string') {
       updates.icon = updates.icon.toLowerCase().trim();
+    }
+
+    // Detect changed fields for audit history
+    const LINK_LABELS = {
+      name: 'Link name',
+      url: 'URL',
+      section: 'Tier'
+    };
+
+    const changes = [];
+    ['name', 'url', 'section'].forEach(key => {
+      if (updates[key] !== undefined) {
+        const oldVal = String(link[key] ?? '').trim();
+        const newVal = String(updates[key] ?? '').trim();
+        if (oldVal !== newVal) {
+          changes.push({
+            field: key,
+            label: LINK_LABELS[key] || key,
+            oldValue: link[key],
+            newValue: updates[key]
+          });
+        }
+      }
+    });
+
+    if (changes.length > 0) {
+      const linkTitle = (updates.name || link.name || updates.url || link.url || 'Link').trim();
+      const desc = changes.map(c => `${c.label}: "${formatLinkVal(c.oldValue)}" → "${formatLinkVal(c.newValue)}"`).join(', ');
+      await History.create({
+        entityType: 'link',
+        entityId: link._id,
+        action: 'update',
+        title: linkTitle,
+        description: desc,
+        field: changes.length === 1 ? changes[0].field : '',
+        oldValue: changes.length === 1 ? changes[0].oldValue : null,
+        newValue: changes.length === 1 ? changes[0].newValue : null,
+        snapshot: link.toObject()
+      }).catch(e => console.error('History save error:', e.message));
     }
 
     const updated = await Link.findByIdAndUpdate(

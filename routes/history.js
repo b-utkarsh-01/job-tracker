@@ -29,9 +29,20 @@ router.post('/:id/rollback', async (req, res) => {
       let updateData = {};
       if (entry.field) {
         updateData[entry.field] = entry.oldValue;
+        // If snippet body or bodyHtml was rolled back, ensure both are restored from snapshot
+        if (entry.entityType === 'snippet' && (entry.field === 'body' || entry.field === 'bodyHtml') && entry.snapshot) {
+          updateData.body = entry.snapshot.body || '';
+          updateData.bodyHtml = entry.snapshot.bodyHtml || '';
+        }
       } else if (entry.snapshot) {
-        updateData = entry.snapshot;
+        updateData = { ...entry.snapshot };
       }
+
+      // Always strip immutable / internal fields from updateData
+      delete updateData._id;
+      delete updateData.__v;
+      delete updateData.createdAt;
+      delete updateData.updatedAt;
 
       if (entry.entityType === 'application') {
         restoredDoc = await Application.findByIdAndUpdate(entry.entityId, updateData, { new: true });

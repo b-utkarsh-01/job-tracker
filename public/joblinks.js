@@ -271,6 +271,8 @@
         .then(function () {
           loadLinks();
           showToast('Link removed', 'success');
+          if (typeof window.loadHistory === 'function') window.loadHistory();
+          if (typeof window.loadTrash === 'function') window.loadTrash();
         })
         .catch(function () {
           showToast('Failed to remove link', 'error');
@@ -374,6 +376,7 @@
         closeModal();
         loadLinks();
         showToast(wasEditing ? 'Link updated' : 'Link added', 'success');
+        if (typeof window.loadHistory === 'function') window.loadHistory();
       })
       .catch(function () {
         showToast('Failed to save link', 'error');
@@ -408,6 +411,7 @@
         rail.innerHTML = '<div class="sidebar-empty">Could not load links.</div>';
       });
   }
+  window.loadLinks = loadLinks;
 
   // ---- wire events (defensively: only if elements exist) ----
 

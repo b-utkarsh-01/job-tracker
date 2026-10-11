@@ -1127,6 +1127,7 @@ async function loadTrash() {
     updateTrashHistorySummaries();
   }
 }
+window.loadTrash = loadTrash;
 
 async function restoreTrashItem(id) {
   try {
@@ -1140,7 +1141,9 @@ async function restoreTrashItem(id) {
     await loadApps();
     await loadStats();
     await loadCalendar();
-    if (typeof loadLinks === 'function') loadLinks();
+    if (typeof window.loadLinks === 'function') window.loadLinks();
+    else if (typeof loadLinks === 'function') loadLinks();
+    if (typeof window.loadSnippets === 'function') window.loadSnippets();
   } catch (e) {
     showToast(e.message, 'error');
   }
@@ -1204,7 +1207,7 @@ async function loadHistory() {
               <span class="action-pill ${actionClass}">${item.action}</span>
               <span class="history-item-title">${esc(item.title)}</span>
             </div>
-            <div class="history-item-sub">${esc(item.description)}</div>
+            <div class="history-item-sub" title="${esc(item.description)}">${esc(item.description)}</div>
             <div class="trash-item-meta">
               <span>${timeStr}</span>
             </div>
@@ -1228,6 +1231,7 @@ async function loadHistory() {
     updateTrashHistorySummaries();
   }
 }
+window.loadHistory = loadHistory;
 
 function updateTrashHistorySummaries() {
   const badgeTrash = document.getElementById('trashCountBadge');
@@ -1256,7 +1260,9 @@ async function rollbackHistoryItem(id) {
     await loadApps();
     await loadStats();
     await loadCalendar();
-    if (typeof loadLinks === 'function') loadLinks();
+    if (typeof window.loadLinks === 'function') window.loadLinks();
+    else if (typeof loadLinks === 'function') loadLinks();
+    if (typeof window.loadSnippets === 'function') window.loadSnippets();
   } catch (e) {
     showToast(e.message, 'error');
   }
@@ -1883,12 +1889,27 @@ if (document.fonts && document.fonts.ready) {
 function renderFilters() {
   // "Active" is the default view (hides Rejected / Ghosted / No Response).
   const cats = ['Active', 'All', 'Follow-up Due', ...STATUSES];
+  const filtersEl = document.getElementById('filters');
+  if (!filtersEl) return;
 
-  document.getElementById('filters').innerHTML = cats
-    .map(c => `<button data-f="${c}" class="${filter === c ? 'active' : ''}">${c}</button>`)
+  const getCount = (c) => {
+    if (c === 'Active') return apps.filter(a => !CLOSED_STATUSES.includes(a.status)).length;
+    if (c === 'All') return apps.length;
+    if (c === 'Follow-up Due') return apps.filter(isOverdue).length;
+    return apps.filter(a => a.status === c).length;
+  };
+
+  filtersEl.innerHTML = cats
+    .map(c => {
+      const count = getCount(c);
+      const isDue = c === 'Follow-up Due' && count > 0;
+      const dueDot = isDue ? '<span class="filter-due-dot"></span>' : '';
+      const extraClass = (isDue ? ' has-due' : '') + (count > 0 ? ' has-count' : '');
+      return `<button data-f="${c}" class="${filter === c ? 'active' : ''}${extraClass}">${dueDot}<span>${c}</span><span class="filter-badge">${count}</span></button>`;
+    })
     .join('');
 
-  document.querySelectorAll('#filters button').forEach(b => {
+  filtersEl.querySelectorAll('button').forEach(b => {
     b.onclick = () => {
       filter = b.dataset.f;
       currentPage = 1;
@@ -2240,7 +2261,7 @@ function renderTable() {
               <td data-label="Follow-up">${followupHtml}</td>
 
               <td class="notes" data-label="Notes" data-notes-id="${a._id}">
-                ${a.notes ? linkify(a.notes) : '<span style="opacity:0.5">— click to add —</span>'}
+                <div class="notes-content">${a.notes ? linkify(a.notes) : '<span style="opacity:0.5">— click to add —</span>'}</div>
               </td>
             </tr>
           `;

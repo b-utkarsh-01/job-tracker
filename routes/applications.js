@@ -225,25 +225,73 @@ router.patch('/:id', async (req, res) => {
       updates.mailCount = Math.max(0, Math.floor(Number(updates.mailCount) || 0));
     }
 
+function formatAppVal(field, v) {
+  if (v === null || v === undefined) return '';
+  if (field === 'priority') return v ? 'Yes' : 'No';
+  if (['dateApplied', 'eventDate', 'lastMailedAt', 'nextFollowupDate'].includes(field)) {
+    try {
+      const d = new Date(v);
+      return !isNaN(d.getTime()) ? d.toLocaleDateString() : String(v);
+    } catch { return String(v); }
+  }
+  const s = String(v).replace(/\s+/g, ' ').trim();
+  if (!s) return '(empty)';
+  return s.length > 50 ? s.slice(0, 47) + '...' : s;
+}
+
     // Detect changed fields for audit history
+    const APP_LABELS = {
+      company: 'Company',
+      role: 'Role',
+      source: 'Source',
+      status: 'Status',
+      notes: 'Notes',
+      dateApplied: 'Date Applied',
+      portalLink: 'Portal Link',
+      priority: 'Priority',
+      mailCount: 'Mail Count',
+      lastMailedAt: 'Last Mailed',
+      eventDate: 'Event Date',
+      eventLabel: 'Event Type',
+      nextFollowupDate: 'Follow-up Date'
+    };
+
     const changes = [];
     for (const [key, val] of Object.entries(updates)) {
       const oldVal = existing[key];
-      const sOld = oldVal instanceof Date ? oldVal.toISOString() : String(oldVal ?? '');
-      const sNew = val instanceof Date ? val.toISOString() : String(val ?? '');
-      if (sOld !== sNew) {
-        changes.push({ field: key, oldValue: oldVal, newValue: val });
+      let diff = false;
+      if (['dateApplied', 'eventDate', 'lastMailedAt', 'nextFollowupDate'].includes(key)) {
+        const dOld = oldVal ? new Date(oldVal).toISOString().split('T')[0] : '';
+        const dNew = val ? new Date(val).toISOString().split('T')[0] : '';
+        diff = dOld !== dNew;
+      } else if (key === 'priority') {
+        diff = Boolean(oldVal) !== Boolean(val);
+      } else if (key === 'mailCount') {
+        diff = Number(oldVal || 0) !== Number(val || 0);
+      } else {
+        const sOld = String(oldVal ?? '').trim();
+        const sNew = String(val ?? '').trim();
+        diff = sOld !== sNew;
+      }
+      if (diff) {
+        changes.push({
+          field: key,
+          label: APP_LABELS[key] || key,
+          oldValue: oldVal,
+          newValue: val
+        });
       }
     }
 
     if (changes.length > 0) {
-      const desc = changes.map(c => `${c.field}: "${c.oldValue ?? ''}" → "${c.newValue ?? ''}"`).join(', ');
+      const appTitle = (updates.company || existing.company || 'Application').trim() || 'Application';
+      const desc = changes.map(c => `${c.label}: "${formatAppVal(c.field, c.oldValue)}" → "${formatAppVal(c.field, c.newValue)}"`).join(', ');
       await History.create({
         entityType: 'application',
         entityId: existing._id,
         action: 'update',
-        title: existing.company,
-        description: `${existing.company} - ${desc}`,
+        title: appTitle,
+        description: desc,
         field: changes.length === 1 ? changes[0].field : '',
         oldValue: changes.length === 1 ? changes[0].oldValue : null,
         newValue: changes.length === 1 ? changes[0].newValue : null,
@@ -266,6 +314,8 @@ router.patch('/:id/followup', async (req, res) => {
     const app = await Application.findById(req.params.id);
     if (!app) return res.status(404).json({ error: 'Not found' });
 
+    const prevCount = app.followupCount;
+    const oldSnapshot = app.toObject();
     app.followedUpLast = !!answered;
     app.followupCount += 1;
 
@@ -277,6 +327,19 @@ router.patch('/:id/followup', async (req, res) => {
     app.nextFollowupDate = d;
 
     await app.save();
+
+    await History.create({
+      entityType: 'application',
+      entityId: app._id,
+      action: 'update',
+      title: app.company,
+      description: `Follow-up: "${answered ? 'Followed up' : 'Snoozed'} (${prevCount} → ${app.followupCount})"`,
+      field: 'followupCount',
+      oldValue: prevCount,
+      newValue: app.followupCount,
+      snapshot: oldSnapshot
+    }).catch(e => console.error('History save error:', e.message));
+
     res.json(app);
   } catch (err) {
     res.status(400).json({ error: err.message });

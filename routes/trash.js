@@ -27,34 +27,39 @@ router.post('/:id/restore', async (req, res) => {
 
     const data = item.data;
     let restoredDoc = null;
+    const cleanData = { ...data };
+    delete cleanData._id;
+    delete cleanData.__v;
+    delete cleanData.createdAt;
+    delete cleanData.updatedAt;
 
     if (item.entityType === 'application') {
       // Check if application with same ID already exists
       const existing = await Application.findById(item.originalId);
       if (existing) {
         // App already exists (edge case) -> update it
-        restoredDoc = await Application.findByIdAndUpdate(item.originalId, data, { new: true });
+        restoredDoc = await Application.findByIdAndUpdate(item.originalId, cleanData, { new: true });
       } else {
         restoredDoc = await Application.create(data);
       }
     } else if (item.entityType === 'link') {
       const existing = await Link.findById(item.originalId);
       if (existing) {
-        restoredDoc = await Link.findByIdAndUpdate(item.originalId, data, { new: true });
+        restoredDoc = await Link.findByIdAndUpdate(item.originalId, cleanData, { new: true });
       } else {
         restoredDoc = await Link.create(data);
       }
     } else if (item.entityType === 'snippet') {
       const existing = await Snippet.findById(item.originalId);
       if (existing) {
-        restoredDoc = await Snippet.findByIdAndUpdate(item.originalId, data, { new: true });
+        restoredDoc = await Snippet.findByIdAndUpdate(item.originalId, cleanData, { new: true });
       } else {
         restoredDoc = await Snippet.create(data);
       }
     } else if (item.entityType === 'task') {
       const existing = await Task.findById(item.originalId);
       if (existing) {
-        restoredDoc = await Task.findByIdAndUpdate(item.originalId, data, { new: true });
+        restoredDoc = await Task.findByIdAndUpdate(item.originalId, cleanData, { new: true });
       } else {
         restoredDoc = await Task.create(data);
       }

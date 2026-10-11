@@ -30,6 +30,20 @@ router.post('/', async (req, res) => {
   }
 });
 
+function formatTaskVal(field, v) {
+  if (v === null || v === undefined) return '';
+  if (field === 'done') return v ? 'Completed' : 'Pending';
+  if (field === 'date') {
+    try {
+      const d = new Date(v);
+      return !isNaN(d.getTime()) ? d.toLocaleDateString() : String(v);
+    } catch { return String(v); }
+  }
+  const s = String(v).replace(/\s+/g, ' ').trim();
+  if (!s) return '(empty)';
+  return s.length > 50 ? s.slice(0, 47) + '...' : s;
+}
+
 // PATCH update (toggle done, edit title/date/notes)
 router.patch('/:id', async (req, res) => {
   try {
@@ -40,15 +54,54 @@ router.patch('/:id', async (req, res) => {
     const updates = {};
     allowed.forEach(f => { if (req.body[f] !== undefined) updates[f] = req.body[f]; });
 
-    // History log
-    await History.create({
-      entityType: 'task',
-      entityId: existing._id,
-      action: 'update',
-      title: existing.title,
-      description: `Task "${existing.title}" updated`,
-      snapshot: existing.toObject()
-    }).catch(e => console.error('History save error:', e.message));
+    const TASK_LABELS = {
+      title: 'Title',
+      done: 'Status',
+      date: 'Date',
+      notes: 'Notes'
+    };
+
+    const changes = [];
+    ['title', 'date', 'done', 'notes'].forEach(key => {
+      if (updates[key] !== undefined) {
+        const oldVal = existing[key];
+        const newVal = updates[key];
+        let diff = false;
+        if (key === 'date') {
+          const dOld = oldVal ? new Date(oldVal).toISOString().split('T')[0] : '';
+          const dNew = newVal ? new Date(newVal).toISOString().split('T')[0] : '';
+          diff = dOld !== dNew;
+        } else if (key === 'done') {
+          diff = Boolean(oldVal) !== Boolean(newVal);
+        } else {
+          diff = String(oldVal ?? '').trim() !== String(newVal ?? '').trim();
+        }
+        if (diff) {
+          changes.push({
+            field: key,
+            label: TASK_LABELS[key] || key,
+            oldValue: oldVal,
+            newValue: newVal
+          });
+        }
+      }
+    });
+
+    if (changes.length > 0) {
+      const taskTitle = (updates.title || existing.title || 'Task').trim() || 'Task';
+      const desc = changes.map(c => `${c.label}: "${formatTaskVal(c.field, c.oldValue)}" → "${formatTaskVal(c.field, c.newValue)}"`).join(', ');
+      await History.create({
+        entityType: 'task',
+        entityId: existing._id,
+        action: 'update',
+        title: taskTitle,
+        description: desc,
+        field: changes.length === 1 ? changes[0].field : '',
+        oldValue: changes.length === 1 ? changes[0].oldValue : null,
+        newValue: changes.length === 1 ? changes[0].newValue : null,
+        snapshot: existing.toObject()
+      }).catch(e => console.error('History save error:', e.message));
+    }
 
     const task = await Task.findByIdAndUpdate(req.params.id, updates, { new: true });
     res.json(task);
