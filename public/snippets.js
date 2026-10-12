@@ -115,11 +115,54 @@
     'SVG', 'MATH', 'NOSCRIPT', 'TEMPLATE', 'FORM', 'INPUT', 'BUTTON', 'TEXTAREA', 'SELECT'
   ]);
   const KEEP_STYLES = [
-    'color', 'background-color', 'font-size', 'font-family', 'font-weight',
-    'font-style', 'text-decoration', 'text-align', 'margin-left', 'padding-left'
+    'font-size', 'font-weight', 'font-style', 'text-decoration',
+    'text-align', 'margin-left', 'padding-left'
   ];
 
-  function cleanNode(node) {
+  // Helper to detect if a color is a default neutral body text color (e.g. Gmail dark text,
+  // pure black, pure white, app light text) rather than an intentional user color accent.
+  function isNeutralOrThemeColor(colorStr) {
+    if (!colorStr) return true;
+    const s = String(colorStr).trim().toLowerCase();
+    if (['inherit', 'initial', 'unset', 'currentcolor', 'transparent', 'black', 'white'].includes(s)) return true;
+
+    // Check RGB / RGBA: rgb(r, g, b)
+    const rgbMatch = s.match(/^rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+    if (rgbMatch) {
+      const r = parseInt(rgbMatch[1], 10);
+      const g = parseInt(rgbMatch[2], 10);
+      const b = parseInt(rgbMatch[3], 10);
+      // Dark neutrals (e.g. rgb(34, 34, 34) from Gmail or standard black text)
+      if (r <= 65 && g <= 65 && b <= 65) return true;
+      // Light neutrals (e.g. rgb(241, 245, 249) from dark theme text or white)
+      if (r >= 210 && g >= 210 && b >= 210) return true;
+      // Grayscale / near-neutral: channel differences are tiny (< 18)
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      if (max - min < 18) return true;
+      return false;
+    }
+
+    // Check Hex: #rgb or #rrggbb
+    const hexMatch = s.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+    if (hexMatch) {
+      let hex = hexMatch[1];
+      if (hex.length === 3) hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+      const r = parseInt(hex.slice(0, 2), 16);
+      const g = parseInt(hex.slice(2, 4), 16);
+      const b = parseInt(hex.slice(4, 6), 16);
+      if (r <= 65 && g <= 65 && b <= 65) return true;
+      if (r >= 210 && g >= 210 && b >= 210) return true;
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      if (max - min < 18) return true;
+      return false;
+    }
+
+    return false;
+  }
+
+  function cleanNode(node, forPaste = false) {
     Array.from(node.childNodes).forEach(child => {
       if (child.nodeType === Node.TEXT_NODE) return;
       if (child.nodeType !== Node.ELEMENT_NODE) { child.remove(); return; }
@@ -127,7 +170,7 @@
       const tag = child.tagName.toUpperCase();
       if (DROP_TAGS.has(tag)) { child.remove(); return; }
 
-      cleanNode(child);
+      cleanNode(child, forPaste);
 
       // Unknown tag: keep its text, drop the tag itself
       if (!KEEP_TAGS.has(tag)) {
@@ -135,14 +178,32 @@
         return;
       }
 
+      // CRITICAL: NEVER allow inline background colors or external font families in snippets!
+      // This eliminates white/black rectangular background highlight boxes completely.
+      child.style.removeProperty('background-color');
+      child.style.removeProperty('background');
+      child.style.removeProperty('font-family');
+
+      // For text color:
+      // When pasting: drop all incoming colors so pasted text automatically adopts the theme.
+      // When saving/displaying: drop neutral/default body colors (e.g. Gmail dark text or dark theme light text)
+      // so it inherits theme --ink, while preserving intentional colored highlights (e.g. red, blue).
+      const colorVal = child.style.color || child.getAttribute('color');
+      if (forPaste || !colorVal || isNeutralOrThemeColor(colorVal)) {
+        child.style.removeProperty('color');
+        child.removeAttribute('color');
+      }
+
       const styles = [];
       KEEP_STYLES.forEach(p => {
         const v = child.style.getPropertyValue(p);
         if (v && !/url\(|expression|javascript:/i.test(v)) styles.push([p, v]);
       });
+      const keptColor = child.style.color;
+      if (keptColor) styles.push(['color', keptColor]);
+
       const href = tag === 'A' ? (child.getAttribute('href') || '').trim() : '';
       const size = tag === 'FONT' ? child.getAttribute('size') : null;
-      const color = tag === 'FONT' ? child.getAttribute('color') : null;
 
       Array.from(child.attributes).forEach(a => child.removeAttribute(a.name));
 
@@ -153,14 +214,25 @@
         child.setAttribute('rel', 'noopener');
       }
       if (size && /^[1-7]$/.test(size)) child.setAttribute('size', size);
-      if (color && /^[#\w(),.% ]+$/.test(color)) child.setAttribute('color', color);
+
+      // Unwrap empty span/font tags that have no remaining attributes
+      if ((tag === 'SPAN' || tag === 'FONT') && !child.attributes.length) {
+        child.replaceWith(...Array.from(child.childNodes));
+      }
     });
   }
 
   function sanitizeHtml(html) {
     const tpl = document.createElement('template'); // inert: nothing runs or loads
     tpl.innerHTML = String(html || '');
-    cleanNode(tpl.content);
+    cleanNode(tpl.content, false);
+    return tpl.innerHTML;
+  }
+
+  function sanitizePastedHtml(html) {
+    const tpl = document.createElement('template');
+    tpl.innerHTML = String(html || '');
+    cleanNode(tpl.content, true);
     return tpl.innerHTML;
   }
 
@@ -188,15 +260,58 @@
     }
   }
 
+  // Cleans and formats HTML specifically for exporting to email clients (Gmail, Outlook, etc.)
+  // or copying via clipboard. Strips ALL background-colors, converts light/theme colors to
+  // standard email body color (#222222), and wraps in clean typography without background-color.
+  function formatHtmlForEmail(html) {
+    const tpl = document.createElement('template');
+    tpl.innerHTML = String(html || '');
+
+    function cleanForEmail(node) {
+      Array.from(node.childNodes).forEach(child => {
+        if (child.nodeType === Node.TEXT_NODE) return;
+        if (child.nodeType !== Node.ELEMENT_NODE) { child.remove(); return; }
+
+        cleanForEmail(child);
+
+        // Strip any background color so Gmail never renders black or white boxes
+        child.style.removeProperty('background-color');
+        child.style.removeProperty('background');
+        child.style.removeProperty('font-family');
+
+        // Text color: if neutral or dark-mode light text, remove so it inherits #222222
+        const c = child.style.color || child.getAttribute('color');
+        if (c && isNeutralOrThemeColor(c)) {
+          child.style.removeProperty('color');
+          child.removeAttribute('color');
+        }
+
+        if (!child.style.length) {
+          child.removeAttribute('style');
+        }
+
+        if ((child.tagName === 'SPAN' || child.tagName === 'FONT') && !child.attributes.length) {
+          child.replaceWith(...Array.from(child.childNodes));
+        }
+      });
+    }
+
+    cleanForEmail(tpl.content);
+
+    // Clean email container: NO background-color property, standard Arial typography, crisp dark text
+    return `<div style="font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.5; color: #222222;">${tpl.innerHTML}</div>`;
+  }
+
   // Copies formatted HTML + a plain-text version together. Gmail / Outlook /
   // Docs pick the formatted one, plain inputs (WhatsApp etc.) get the text.
   async function copyRich(html, text) {
-    const emailStyledHtml = `<div style="font-family: Arial, Helvetica, sans-serif; font-size: 14px; line-height: 1.5; color: #222222; background-color: #ffffff;">${html}</div>`;
+    const emailStyledHtml = formatHtmlForEmail(html);
+    const plainText = text || emailStyledHtml.replace(/<[^>]+>/g, '').trim();
     try {
       if (navigator.clipboard && window.ClipboardItem) {
         await navigator.clipboard.write([new ClipboardItem({
           'text/html': new Blob([emailStyledHtml], { type: 'text/html' }),
-          'text/plain': new Blob([text], { type: 'text/plain' })
+          'text/plain': new Blob([plainText], { type: 'text/plain' })
         })]);
         return;
       }
@@ -205,7 +320,7 @@
     const box = document.createElement('div');
     box.contentEditable = 'true';
     box.innerHTML = emailStyledHtml;
-    box.style.cssText = 'position:fixed;left:-9999px;top:0;color:#222222;background-color:#ffffff;font:14px Arial,sans-serif;white-space:normal';
+    box.style.cssText = 'position:fixed;left:-9999px;top:0;color:#222222;background:transparent;font:14px Arial,sans-serif;white-space:normal';
     document.body.appendChild(box);
     const range = document.createRange();
     range.selectNodeContents(box);
@@ -676,13 +791,13 @@
   });
   colorInput.addEventListener('input', () => format('foreColor', colorInput.value));
 
-  // Paste keeps formatting (bold, lists, colours...) but drops everything else
+  // Paste keeps structure (bold, lists, links, paragraphs) but cleans foreign backgrounds, colors and fonts
   bodyInput.addEventListener('paste', (e) => {
     const cd = e.clipboardData;
     if (!cd) return;
     e.preventDefault();
     const html = cd.getData('text/html');
-    if (html) document.execCommand('insertHTML', false, sanitizeHtml(html));
+    if (html) document.execCommand('insertHTML', false, sanitizePastedHtml(html));
     else document.execCommand('insertText', false, cd.getData('text/plain'));
     dirty = true;
   });
@@ -855,6 +970,66 @@
     else if (selectMode) exitSelect();
     else closeHub();
   }, true);
+
+  // Intercept manual Ctrl+A, Ctrl+C / selection copy inside Mails & notes
+  // so external apps (Gmail, Outlook, etc.) receive clean HTML without dark background boxes.
+  function handleSnippetCopy(e) {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;
+
+    const activeEl = document.activeElement;
+    if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+      return;
+    }
+
+    const range = sel.getRangeAt(0);
+    if (!overlay.contains(range.commonAncestorContainer)) return;
+
+    e.preventDefault();
+    const container = document.createElement('div');
+    container.appendChild(range.cloneContents());
+
+    const cleanHtml = formatHtmlForEmail(container.innerHTML);
+    const plainText = sel.toString();
+
+    if (e.clipboardData) {
+      e.clipboardData.setData('text/plain', plainText);
+      e.clipboardData.setData('text/html', cleanHtml);
+    }
+  }
+
+  function handleSnippetCut(e) {
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;
+
+    const activeEl = document.activeElement;
+    if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+      return;
+    }
+
+    const range = sel.getRangeAt(0);
+    if (!overlay.contains(range.commonAncestorContainer)) return;
+
+    e.preventDefault();
+    const container = document.createElement('div');
+    container.appendChild(range.cloneContents());
+
+    const cleanHtml = formatHtmlForEmail(container.innerHTML);
+    const plainText = sel.toString();
+
+    if (e.clipboardData) {
+      e.clipboardData.setData('text/plain', plainText);
+      e.clipboardData.setData('text/html', cleanHtml);
+    }
+
+    if (bodyInput.contains(range.commonAncestorContainer)) {
+      document.execCommand('delete');
+      dirty = true;
+    }
+  }
+
+  overlay.addEventListener('copy', handleSnippetCopy);
+  overlay.addEventListener('cut', handleSnippetCut);
 
   window.renderSnippetFill();
   window.loadSnippets = load;

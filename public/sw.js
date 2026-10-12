@@ -1,4 +1,4 @@
-const CACHE = 'job-tracker-v7';
+const CACHE = 'job-tracker-v8';
 const SHELL = ['/', '/index.html', '/style.css', '/icons.js', '/components.js', '/app.js', '/manifest.json'];
 
 self.addEventListener('install', (e) => {

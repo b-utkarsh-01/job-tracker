@@ -2443,6 +2443,8 @@ body:has(.job-links-sidebar.sidebar-expanded){ padding-left: 276px; }
 .hub-rich ul, .hub-rich ol{ margin: 4px 0; padding-left: 24px; }
 .hub-rich p{ margin: 0 0 8px; }
 .hub-rich a{ color: var(--teal); }
+/* Prevent any external or pasted inline backgrounds from rendering rectangular highlight boxes */
+.hub-rich *:not(.hub-badge):not(button){ background-color: transparent !important; }
 
 .hub-mail .hub-body{
   display: -webkit-box;
